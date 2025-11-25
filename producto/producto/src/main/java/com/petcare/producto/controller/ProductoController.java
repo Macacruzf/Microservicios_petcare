@@ -17,10 +17,19 @@ import com.petcare.producto.dto.CategoriaSimpleDto;
 import com.petcare.producto.dto.CategoriaRequest;
 import com.petcare.producto.dto.EstadoRequest;
 
+// Importaciones de Swagger (OpenAPI 3)
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/v1/productos")
+@Tag(name = "Productos", description = "API para gestión de inventario, catálogo y categorías")
 public class ProductoController {
 
     @Autowired
@@ -30,10 +39,15 @@ public class ProductoController {
     // ✔ PRODUCTOS PARA ANDROID (SIN HATEOAS)
     // ============================================================
     @GetMapping("/movil")
-    @Operation(summary = "Versión liviana para Android sin HATEOAS")
+    @Operation(summary = "Listar productos (Versión Móvil)", description = "Retorna una lista optimizada de productos DTO para la app Android.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lista obtenida con éxito", 
+                     content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = ProductoUpdateDto.class)))),
+        @ApiResponse(responseCode = "204", description = "No hay productos disponibles")
+    })
     public ResponseEntity<?> obtenerProductosMovil(
-            @RequestParam(required = false) String nombre,
-            @RequestParam(required = false) Long categoriaId
+            @Parameter(description = "Filtrar por nombre") @RequestParam(required = false) String nombre,
+            @Parameter(description = "Filtrar por ID de categoría") @RequestParam(required = false) Long categoriaId
     ) {
         try {
             List<Producto> productos = productoService.getProductos(nombre, categoriaId);
@@ -48,11 +62,12 @@ public class ProductoController {
                 dto.setStock(p.getStock());
                 dto.setEstado(p.getEstado().name());
 
-                CategoriaSimpleDto cat = new CategoriaSimpleDto();
-                cat.setIdCategoria(p.getCategoria().getIdCategoria());
-                cat.setNombre(p.getCategoria().getNombre());
-                dto.setCategoria(cat);
-
+                if (p.getCategoria() != null) {
+                    CategoriaSimpleDto cat = new CategoriaSimpleDto();
+                    cat.setIdCategoria(p.getCategoria().getIdCategoria());
+                    cat.setNombre(p.getCategoria().getNombre());
+                    dto.setCategoria(cat);
+                }
                 return dto;
             }).toList();
 
@@ -67,9 +82,12 @@ public class ProductoController {
     // ✔ LISTAR PRODUCTOS GENERAL
     // ============================================================
     @GetMapping
+    @Operation(summary = "Listar todos los productos", description = "Obtiene la lista completa de entidades Producto.")
+    @ApiResponse(responseCode = "200", description = "Éxito", 
+                 content = @Content(array = @ArraySchema(schema = @Schema(implementation = Producto.class))))
     public ResponseEntity<?> obtenerProductos(
-            @RequestParam(required = false) String nombre,
-            @RequestParam(required = false) Long categoriaId) {
+            @Parameter(description = "Nombre del producto") @RequestParam(required = false) String nombre,
+            @Parameter(description = "ID de la categoría") @RequestParam(required = false) Long categoriaId) {
 
         try {
             List<Producto> productos = productoService.getProductos(nombre, categoriaId);
@@ -86,6 +104,12 @@ public class ProductoController {
     // ✔ OBTENER PRODUCTO POR ID
     // ============================================================
     @GetMapping("/{id}")
+    @Operation(summary = "Obtener detalle de producto", description = "Busca un producto completo por su ID.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Producto encontrado", 
+                     content = @Content(schema = @Schema(implementation = Producto.class))),
+        @ApiResponse(responseCode = "404", description = "Producto no encontrado")
+    })
     public ResponseEntity<?> obtenerProductoConDetalles(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(productoService.getProductoById(id));
@@ -98,27 +122,29 @@ public class ProductoController {
     }
 
     // ============================================================
-    // ✔ CREAR PRODUCTO  (SIN ADMIN)
+    // ✔ CREAR PRODUCTO
     // ============================================================
     @PostMapping
+    @Operation(summary = "Crear nuevo producto", description = "Agrega un producto al inventario.")
+    @ApiResponse(responseCode = "201", description = "Producto creado", content = @Content(schema = @Schema(implementation = Producto.class)))
     public ResponseEntity<?> agregarProducto(@RequestBody Producto producto) {
         try {
             if (producto.getEstado() == null) {
                 producto.setEstado(EstadoProducto.DISPONIBLE);
             }
-
             Producto nuevo = productoService.agregarProducto(producto);
             return ResponseEntity.status(201).body(nuevo);
-
         } catch (Exception e) {
             return errorResponse(500, e.getMessage());
         }
     }
 
     // ============================================================
-    // ✔ EDITAR PRODUCTO  (SIN ADMIN)
+    // ✔ EDITAR PRODUCTO
     // ============================================================
     @PutMapping("/{id}")
+    @Operation(summary = "Actualizar producto", description = "Actualiza los datos básicos de un producto existente.")
+    @ApiResponse(responseCode = "200", description = "Producto actualizado", content = @Content(schema = @Schema(implementation = Producto.class)))
     public ResponseEntity<?> actualizarProducto(
             @PathVariable Long id,
             @RequestBody ProductoUpdateDto dto) {
@@ -133,9 +159,11 @@ public class ProductoController {
     }
 
     // ============================================================
-    // ✔ CAMBIAR ESTADO  (SIN ADMIN)
+    // ✔ CAMBIAR ESTADO
     // ============================================================
     @PutMapping("/{id}/estado")
+    @Operation(summary = "Cambiar estado del producto", description = "Actualiza el estado (DISPONIBLE, AGOTADO, ETC).")
+    @ApiResponse(responseCode = "200", description = "Estado modificado correctamente")
     public ResponseEntity<?> cambiarEstadoProducto(
             @PathVariable Long id,
             @RequestBody EstadoRequest request
@@ -158,9 +186,11 @@ public class ProductoController {
     }
 
     // ============================================================
-    // ✔ ELIMINAR PRODUCTO  (SIN ADMIN)
+    // ✔ ELIMINAR PRODUCTO
     // ============================================================
     @DeleteMapping("/{id}")
+    @Operation(summary = "Eliminar producto", description = "Elimina un producto del sistema por su ID.")
+    @ApiResponse(responseCode = "200", description = "Producto eliminado")
     public ResponseEntity<?> eliminarProducto(@PathVariable Long id) {
         try {
             productoService.eliminarProducto(id);
@@ -172,9 +202,11 @@ public class ProductoController {
     }
 
     // ============================================================
-    // ✔ CRUD CATEGORÍAS — ANDROID COMPATIBLE (SIN ADMIN)
+    // ✔ CRUD CATEGORÍAS
     // ============================================================
     @GetMapping("/categorias")
+    @Operation(summary = "Listar categorías", description = "Obtiene todas las categorías disponibles.")
+    @ApiResponse(responseCode = "200", description = "Éxito", content = @Content(array = @ArraySchema(schema = @Schema(implementation = Categoria.class))))
     public ResponseEntity<?> obtenerCategorias() {
         try {
             List<Categoria> categorias = productoService.getCategorias();
@@ -188,6 +220,8 @@ public class ProductoController {
     }
 
     @PostMapping("/categorias")
+    @Operation(summary = "Crear categoría", description = "Agrega una nueva categoría.")
+    @ApiResponse(responseCode = "201", description = "Categoría creada", content = @Content(schema = @Schema(implementation = Categoria.class)))
     public ResponseEntity<?> agregarCategoria(@RequestBody CategoriaRequest request) {
         try {
             Categoria nueva = new Categoria();
@@ -201,6 +235,8 @@ public class ProductoController {
     }
 
     @PutMapping("/categorias/{id}")
+    @Operation(summary = "Actualizar categoría")
+    @ApiResponse(responseCode = "200", description = "Categoría actualizada", content = @Content(schema = @Schema(implementation = Categoria.class)))
     public ResponseEntity<?> actualizarCategoria(
             @PathVariable Long id,
             @RequestBody CategoriaRequest request) {
@@ -217,6 +253,7 @@ public class ProductoController {
     }
 
     @DeleteMapping("/categorias/{id}")
+    @Operation(summary = "Eliminar categoría")
     public ResponseEntity<?> eliminarCategoria(@PathVariable Long id) {
         try {
             productoService.eliminarCategoria(id);

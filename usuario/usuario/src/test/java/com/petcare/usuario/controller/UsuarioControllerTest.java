@@ -1,168 +1,261 @@
 package com.petcare.usuario.controller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import java.util.Arrays;
+import java.util.Collections;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.petcare.usuario.dto.LoginRequest;
-import com.petcare.usuario.dto.LoginResponse;
+import com.petcare.usuario.dto.RegisterRequest;
 import com.petcare.usuario.model.EstadoUsuario;
 import com.petcare.usuario.model.Rol;
 import com.petcare.usuario.model.Usuario;
 import com.petcare.usuario.repository.UsuarioRepository;
 import com.petcare.usuario.service.UsuarioService;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.springframework.http.ResponseEntity;
 
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-
+@WebMvcTest(UsuarioController.class)
+@AutoConfigureMockMvc(addFilters = false) // ⚠️ Importante: Ignora seguridad (tokens) para probar solo la lógica
 class UsuarioControllerTest {
 
-private final UsuarioService service = Mockito.mock(UsuarioService.class);
-private final UsuarioRepository repo = Mockito.mock(UsuarioRepository.class);
+    @Autowired
+    private MockMvc mockMvc;
 
-private final UsuarioController controller = new UsuarioController(service, repo);
+    @MockBean
+    private UsuarioService usuarioService;
 
+    @MockBean
+    private UsuarioRepository usuarioRepository;
 
-    // ------------------------------------------------------------
-    // LOGIN
-    // ------------------------------------------------------------
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    // ============================================================
+    // TEST: LOGIN
+    // ============================================================
     @Test
-    void loginOk() {
-        Usuario user = new Usuario(1, "Fran", "fran@test.com",
-                "123", "pass", Rol.CLIENTE, EstadoUsuario.ACTIVO);
-
-        Mockito.when(service.login("fran@test.com", "pass"))
-                .thenReturn(user);
-
+    @DisplayName("POST /login - Exito: Retorna usuario y success true")
+    void login_Exito() throws Exception {
         LoginRequest req = new LoginRequest();
-        req.setEmail("fran@test.com");
-        req.setPassword("pass");
+        req.setEmail("juan@mail.com");
+        req.setPassword("1234");
 
-        ResponseEntity<?> resp = controller.login(req);
+        Usuario u = new Usuario();
+        u.setIdUsuario(1);
+        u.setEmail("juan@mail.com");
+        u.setNombreUsuario("Juan");
 
-        assertEquals(200, resp.getStatusCode().value());
-        LoginResponse body = (LoginResponse) resp.getBody();
-        assertTrue(body.isSuccess());
-        assertEquals("Fran", body.getUsuario().getNombreUsuario());
+        when(usuarioService.login("juan@mail.com", "1234")).thenReturn(u);
+
+        mockMvc.perform(post("/usuario/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.usuario.email").value("juan@mail.com"));
     }
 
     @Test
-    void loginCredencialesInvalidas() {
-        Mockito.when(service.login(anyString(), anyString()))
-                .thenReturn(null);
-
+    @DisplayName("POST /login - Fallo: Credenciales inválidas (401)")
+    void login_Fallo() throws Exception {
         LoginRequest req = new LoginRequest();
-        req.setEmail("bad@test.com");
+        req.setEmail("bad@mail.com");
         req.setPassword("wrong");
 
-        ResponseEntity<?> resp = controller.login(req);
+        when(usuarioService.login("bad@mail.com", "wrong")).thenReturn(null);
 
-        assertEquals(401, resp.getStatusCode().value());
-        Map<?, ?> body = (Map<?, ?>) resp.getBody();
-        assertEquals("Credenciales inválidas", body.get("message"));
+        mockMvc.perform(post("/usuario/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isUnauthorized()) // Espera 401
+                .andExpect(jsonPath("$.success").value(false));
     }
 
-    // ------------------------------------------------------------
-    // VER PERFIL
-    // ------------------------------------------------------------
+    // ============================================================
+    // TEST: REGISTRO
+    // ============================================================
     @Test
-    void verPerfilOk() {
-        Usuario user = new Usuario(1, "Fran", "fran@test.com",
-                "123", "pass", Rol.CLIENTE, EstadoUsuario.ACTIVO);
+    @DisplayName("POST /register - Exito: Crea nuevo usuario")
+    void registrar_Exito() throws Exception {
+        RegisterRequest req = new RegisterRequest();
+        req.setNombreUsuario("nuevoUser");
+        req.setEmail("nuevo@mail.com");
+        req.setPassword("pass");
+        req.setRol("CLIENTE");
 
-        Mockito.when(service.getPerfil(1)).thenReturn(user);
+        Usuario creado = new Usuario();
+        creado.setIdUsuario(10);
+        creado.setNombreUsuario("nuevoUser");
+        creado.setRol(Rol.CLIENTE);
 
-        ResponseEntity<?> resp = controller.perfil(1);
+        when(usuarioService.registrar(any(Usuario.class))).thenReturn(creado);
 
-        assertEquals(200, resp.getStatusCode().value());
-        Usuario body = (Usuario) resp.getBody();
-        assertEquals("Fran", body.getNombreUsuario());
+        mockMvc.perform(post("/usuario/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.idUsuario").value(10))
+                .andExpect(jsonPath("$.rol").value("CLIENTE"));
     }
 
+    // ============================================================
+    // TEST: PERFIL (GET & PUT)
+    // ============================================================
     @Test
-    void verPerfilNoEncontrado() {
-        Mockito.when(service.getPerfil(1)).thenReturn(null);
+    @DisplayName("GET /perfil/{id} - Exito: Retorna perfil")
+    void perfil_Exito() throws Exception {
+        Usuario u = new Usuario();
+        u.setIdUsuario(1);
+        u.setNombreUsuario("Pepe");
 
-        ResponseEntity<?> resp = controller.perfil(1);
+        when(usuarioService.getPerfil(1)).thenReturn(u);
 
-        assertEquals(404, resp.getStatusCode().value());
-        assertEquals("No encontrado", resp.getBody());
-    }
-
-    // ------------------------------------------------------------
-    // EDITAR PERFIL
-    // ------------------------------------------------------------
-    @Test
-    void editarPerfilOk() {
-        Usuario original = new Usuario(1, "Fran", "old@test.com",
-                "123", "pass", Rol.CLIENTE, EstadoUsuario.ACTIVO);
-
-        Usuario cambios = new Usuario(null, null, "nuevo@test.com",
-                "999", "newpass", null, null);
-
-        Usuario actualizado = new Usuario(1, "Fran", "nuevo@test.com",
-                "999", "newpass", Rol.CLIENTE, EstadoUsuario.ACTIVO);
-
-        Mockito.when(service.editarPerfil(eq(1), any(Usuario.class)))
-                .thenReturn(actualizado);
-
-        ResponseEntity<?> resp = controller.editarPerfil(1, cambios);
-
-        assertEquals(200, resp.getStatusCode().value());
-        Usuario body = (Usuario) resp.getBody();
-        assertEquals("nuevo@test.com", body.getEmail());
+        mockMvc.perform(get("/usuario/perfil/{id}", 1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombreUsuario").value("Pepe"));
     }
 
     @Test
-    void editarPerfilNoEncontrado() {
-        Mockito.when(service.editarPerfil(eq(1), any(Usuario.class)))
-                .thenReturn(null);
+    @DisplayName("GET /perfil/{id} - Fallo: 404 No Encontrado")
+    void perfil_NoEncontrado() throws Exception {
+        when(usuarioService.getPerfil(99)).thenReturn(null);
 
-        Usuario cambios = new Usuario();
-        cambios.setEmail("fail@test.com");
-
-        ResponseEntity<?> resp = controller.editarPerfil(1, cambios);
-
-        assertEquals(404, resp.getStatusCode().value());
-        assertEquals("No encontrado", resp.getBody());
+        mockMvc.perform(get("/usuario/perfil/{id}", 99))
+                .andExpect(status().isNotFound());
     }
 
-    // ------------------------------------------------------------
-    //  LISTAR POR ESTADO
-    // ------------------------------------------------------------
     @Test
-    void listarPorEstado() {
-        Usuario u = new Usuario(1, "Fran", "f@test.com",
-                "123", "pass", Rol.CLIENTE, EstadoUsuario.INACTIVO);
+    @DisplayName("PUT /perfil/{id} - Exito: Actualiza perfil")
+    void editarPerfil_Exito() throws Exception {
+        Usuario datos = new Usuario();
+        datos.setTelefono("9999999");
 
-        Mockito.when(service.listarPorEstado(EstadoUsuario.INACTIVO))
-                .thenReturn(List.of(u));
+        Usuario actualizado = new Usuario();
+        actualizado.setIdUsuario(1);
+        actualizado.setTelefono("9999999");
 
-        ResponseEntity<?> resp = controller.listarPorEstado(EstadoUsuario.INACTIVO);
+        when(usuarioService.editarPerfil(eq(1), any(Usuario.class))).thenReturn(actualizado);
 
-        assertEquals(200, resp.getStatusCode().value());
-        List<?> body = (List<?>) resp.getBody();
-        assertEquals(1, body.size());
+        mockMvc.perform(put("/usuario/perfil/{id}", 1)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(datos)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.telefono").value("9999999"));
     }
 
-    // ------------------------------------------------------------
-    // BUSCAR
-    // ------------------------------------------------------------
+    // ============================================================
+    // TEST: LISTAR (ADMIN)
+    // ============================================================
     @Test
-    void buscarUsuario() {
-        Usuario u = new Usuario(1, "Fran", "fran@test.com",
-                "123", "pass", Rol.CLIENTE, EstadoUsuario.ACTIVO);
+    @DisplayName("GET /listar/{idAdmin} - Exito: Admin autorizado")
+    void listar_ExitoAdmin() throws Exception {
+        Usuario admin = new Usuario();
+        admin.setIdUsuario(1);
+        admin.setRol(Rol.ADMIN);
 
-        Mockito.when(service.buscar("fran"))
-                .thenReturn(List.of(u));
+        Usuario u2 = new Usuario();
+        u2.setIdUsuario(2);
 
-        ResponseEntity<?> resp = controller.buscar("fran");
+        when(usuarioService.getPerfil(1)).thenReturn(admin);
+        when(usuarioService.listar()).thenReturn(Arrays.asList(admin, u2));
 
-        assertEquals(200, resp.getStatusCode().value());
-        List<?> body = (List<?>) resp.getBody();
-        assertEquals(1, body.size());
-        assertEquals("Fran", ((Usuario) body.get(0)).getNombreUsuario());
+        mockMvc.perform(get("/usuario/listar/{idAdmin}", 1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    @DisplayName("GET /listar/{idAdmin} - Fallo: 403 No autorizado")
+    void listar_FalloNoAdmin() throws Exception {
+        Usuario cliente = new Usuario();
+        cliente.setIdUsuario(2);
+        cliente.setRol(Rol.CLIENTE);
+
+        when(usuarioService.getPerfil(2)).thenReturn(cliente);
+
+        mockMvc.perform(get("/usuario/listar/{idAdmin}", 2))
+                .andExpect(status().isForbidden());
+    }
+
+    // ============================================================
+    // TEST: OTROS ENDPOINTS (Estados, Buscar, Validar, Roles)
+    // ============================================================
+    @Test
+    @DisplayName("GET /estados - Listar por estado")
+    void listarPorEstado_Exito() throws Exception {
+        when(usuarioService.listarPorEstado(EstadoUsuario.ACTIVO))
+                .thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/usuario/estados").param("estado", "ACTIVO"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("GET /buscar - Buscar usuario")
+    void buscar_Exito() throws Exception {
+        when(usuarioService.buscar("algo")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/usuario/buscar").param("q", "algo"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("POST /validar-credenciales - Exito: Valido")
+    void validarCredenciales_Valido() throws Exception {
+        LoginRequest req = new LoginRequest();
+        req.setEmail("valid@mail.com");
+        req.setPassword("pass");
+
+        Usuario u = new Usuario();
+        u.setIdUsuario(5);
+        u.setRol(Rol.CLIENTE);
+        u.setEstado(EstadoUsuario.ACTIVO);
+
+        when(usuarioService.login("valid@mail.com", "pass")).thenReturn(u);
+
+        mockMvc.perform(post("/usuario/validar-credenciales")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.valido").value(true))
+                .andExpect(jsonPath("$.rol").value("CLIENTE"));
+    }
+
+    @Test
+    @DisplayName("GET /{id}/rol - Obtener Rol")
+    void obtenerRol_Exito() throws Exception {
+        Usuario u = new Usuario();
+        u.setRol(Rol.ADMIN);
+
+        when(usuarioService.getPerfil(10)).thenReturn(u);
+
+        mockMvc.perform(get("/usuario/{id}/rol", 10))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rol").value("ADMIN"));
+    }
+
+    @Test
+    @DisplayName("DELETE /{id} - Eliminar usuario")
+    void eliminar_Exito() throws Exception {
+        doNothing().when(usuarioRepository).deleteById(1);
+
+        mockMvc.perform(delete("/usuario/{id}", 1))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Usuario eliminado"));
     }
 }
