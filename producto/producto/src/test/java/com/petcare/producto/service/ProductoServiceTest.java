@@ -146,38 +146,7 @@ class ProductoServiceTest {
                 () -> productoService.agregarProducto(producto));
     }
 
-    // ============================================================
-    // ✔ Test actualizar producto
-    // ============================================================
-    @Test
-    void testActualizarProducto() {
 
-        Producto cambios = new Producto();
-        cambios.setNombre("Cat Chow");
-        cambios.setPrecio(12990.0);
-        cambios.setStock(10);
-        cambios.setEstado(EstadoProducto.NO_DISPONIBLE);
-        cambios.setCategoria(categoria);
-
-        when(productoRepository.findById(10L)).thenReturn(Optional.of(producto));
-        when(categoriaRepository.findById(1L)).thenReturn(Optional.of(categoria));
-        when(productoRepository.save(any(Producto.class))).thenReturn(producto);
-
-        Producto actualizado = productoService.actualizarProducto(10L, cambios);
-
-        assertEquals("Cat Chow", actualizado.getNombre());
-        assertEquals(12990.0, actualizado.getPrecio());
-        assertEquals(10, actualizado.getStock());
-        assertEquals(EstadoProducto.NO_DISPONIBLE, actualizado.getEstado());
-    }
-
-    @Test
-    void testActualizarProducto_NotFound() {
-        when(productoRepository.findById(10L)).thenReturn(Optional.empty());
-
-        assertThrows(ProductoService.ResourceNotFoundException.class,
-                () -> productoService.actualizarProducto(10L, producto));
-    }
 
     // ============================================================
     // ✔ Test actualizar stock

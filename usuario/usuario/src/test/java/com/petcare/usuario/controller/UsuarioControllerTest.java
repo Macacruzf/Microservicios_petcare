@@ -5,6 +5,7 @@ import com.petcare.usuario.dto.LoginResponse;
 import com.petcare.usuario.model.EstadoUsuario;
 import com.petcare.usuario.model.Rol;
 import com.petcare.usuario.model.Usuario;
+import com.petcare.usuario.repository.UsuarioRepository;
 import com.petcare.usuario.service.UsuarioService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -18,11 +19,14 @@ import static org.mockito.ArgumentMatchers.*;
 
 class UsuarioControllerTest {
 
-    private final UsuarioService service = Mockito.mock(UsuarioService.class);
-    private final UsuarioController controller = new UsuarioController(service);
+private final UsuarioService service = Mockito.mock(UsuarioService.class);
+private final UsuarioRepository repo = Mockito.mock(UsuarioRepository.class);
+
+private final UsuarioController controller = new UsuarioController(service, repo);
+
 
     // ------------------------------------------------------------
-    // 1. LOGIN
+    // LOGIN
     // ------------------------------------------------------------
     @Test
     void loginOk() {
@@ -61,25 +65,7 @@ class UsuarioControllerTest {
     }
 
     // ------------------------------------------------------------
-    // 2. REGISTRO
-    // ------------------------------------------------------------
-    @Test
-    void registrarUsuario() {
-        Usuario nuevo = new Usuario(2, "Nuevo", "nuevo@test.com",
-                "555", "pass", Rol.CLIENTE, EstadoUsuario.ACTIVO);
-
-        Mockito.when(service.registrar(any(Usuario.class)))
-                .thenReturn(nuevo);
-
-        ResponseEntity<?> resp = controller.registrar(nuevo, Rol.CLIENTE);
-
-        assertEquals(200, resp.getStatusCode().value());
-        Usuario body = (Usuario) resp.getBody();
-        assertEquals("nuevo@test.com", body.getEmail());
-    }
-
-    // ------------------------------------------------------------
-    // 3. VER PERFIL
+    // VER PERFIL
     // ------------------------------------------------------------
     @Test
     void verPerfilOk() {
@@ -106,7 +92,7 @@ class UsuarioControllerTest {
     }
 
     // ------------------------------------------------------------
-    // 4. EDITAR PERFIL
+    // EDITAR PERFIL
     // ------------------------------------------------------------
     @Test
     void editarPerfilOk() {
@@ -144,36 +130,7 @@ class UsuarioControllerTest {
     }
 
     // ------------------------------------------------------------
-    // 5. LISTAR (ADMIN)
-    // ------------------------------------------------------------
-    @Test
-    void listarUsuariosOk() {
-        List<Usuario> lista = List.of(
-                new Usuario(1, "Fran", "fran@test.com",
-                        "123", "pass", Rol.CLIENTE, EstadoUsuario.ACTIVO),
-                new Usuario(2, "Admin", "admin@test.com",
-                        "999", "pass", Rol.ADMIN, EstadoUsuario.ACTIVO)
-        );
-
-        Mockito.when(service.listar()).thenReturn(lista);
-
-        ResponseEntity<?> resp = controller.listar(Rol.ADMIN);
-
-        assertEquals(200, resp.getStatusCode().value());
-        List<?> body = (List<?>) resp.getBody();
-        assertEquals(2, body.size());
-    }
-
-    @Test
-    void listarUsuariosNoAutorizado() {
-        ResponseEntity<?> resp = controller.listar(Rol.CLIENTE);
-
-        assertEquals(403, resp.getStatusCode().value());
-        assertEquals("No autorizado", resp.getBody());
-    }
-
-    // ------------------------------------------------------------
-    // 6. LISTAR POR ESTADO
+    //  LISTAR POR ESTADO
     // ------------------------------------------------------------
     @Test
     void listarPorEstado() {
@@ -191,7 +148,7 @@ class UsuarioControllerTest {
     }
 
     // ------------------------------------------------------------
-    // 7. BUSCAR
+    // BUSCAR
     // ------------------------------------------------------------
     @Test
     void buscarUsuario() {

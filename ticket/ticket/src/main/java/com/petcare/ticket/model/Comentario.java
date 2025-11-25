@@ -30,9 +30,6 @@ public class Comentario {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String mensaje;
 
-    @Column(nullable = false)
-    private LocalDateTime fecha;
-
     @Column(nullable = false, length = 15)
     private String tipoMensaje; 
     // CLIENTE o SOPORTE

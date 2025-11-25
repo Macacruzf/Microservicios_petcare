@@ -29,4 +29,6 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     // Buscar productos por estado (ej. ACTIVO, AGOTADO, etc.)
     List<Producto> findByEstado(EstadoProducto estado);
+
+    
 }

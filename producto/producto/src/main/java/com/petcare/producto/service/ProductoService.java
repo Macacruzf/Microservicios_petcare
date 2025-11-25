@@ -10,8 +10,7 @@ import com.petcare.producto.model.EstadoProducto;
 import com.petcare.producto.model.Producto;
 import com.petcare.producto.repository.CategoriaRepository;
 import com.petcare.producto.repository.ProductoRepository;
-import com.petcare.producto.dto.ProductoUpdateDto;
-// IMPORT AGREGADO PARA LA SOBRECARGA OPCIONAL
+
 import com.petcare.producto.dto.ProductoUpdateDto;
 
 import jakarta.transaction.Transactional;
@@ -30,7 +29,7 @@ public class ProductoService {
     }
 
     // =============================================================
-    // ✔ OBTENER PRODUCTOS (CON FILTROS OPCIONALES)
+    // ✔ OBTENER PRODUCTOS (CON FILTROS)
     // =============================================================
     public List<Producto> getProductos(String nombre, Long categoriaId) {
         if (nombre != null && categoriaId != null) {
@@ -53,11 +52,21 @@ public class ProductoService {
     }
 
     // =============================================================
-    // ✔ OBTENER POR ID
+    // ✔ OBTENER POR ID (detalle)
     // =============================================================
     public Producto getProductoConDetalles(Long id) {
         return productoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + id));
+    }
+
+    // =============================================================
+    // ✔ OBTENER SOLO POR ID (Android edición)
+    // =============================================================
+    public Producto getProductoById(Long id) {
+        return productoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Producto no encontrado con ID: " + id
+                ));
     }
 
     // =============================================================
@@ -73,26 +82,31 @@ public class ProductoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada"));
 
         producto.setCategoria(categoria);
-
         return productoRepository.save(producto);
     }
 
     // =============================================================
-    // ✔ ACTUALIZAR PRODUCTO (ORIGINAL)
+    // ✔ ACTUALIZAR PRODUCTO DESDE DTO
     // =============================================================
-    public Producto actualizarProducto(Long id, Producto cambios) {
+    public Producto actualizarProducto(Long id, ProductoUpdateDto request) {
 
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + id));
 
-        producto.setNombre(cambios.getNombre());
-        producto.setPrecio(cambios.getPrecio());
-        producto.setStock(cambios.getStock());
-        producto.setEstado(cambios.getEstado());
+        // ✔ Actualizar campos simples
+        if (request.getNombre() != null) producto.setNombre(request.getNombre());
+        if (request.getPrecio() != null) producto.setPrecio(request.getPrecio());
+        if (request.getStock() != null) producto.setStock(request.getStock());
+        if (request.getEstado() != null) producto.setEstado(request.getEstadoEnum());
 
-        if (cambios.getCategoria() != null) {
-            Categoria categoria = categoriaRepository.findById(cambios.getCategoria().getIdCategoria())
-                    .orElseThrow(() -> new ResourceNotFoundException("Categoría no encontrada"));
+        // ✔ Actualizar categoría si viene en el DTO
+        if (request.getCategoria() != null && request.getCategoria().getIdCategoria() != null) {
+
+            Categoria categoria = categoriaRepository.findById(request.getCategoria().getIdCategoria())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Categoría no encontrada con ID: " + request.getCategoria().getIdCategoria()
+                    ));
+
             producto.setCategoria(categoria);
         }
 
@@ -100,38 +114,18 @@ public class ProductoService {
     }
 
     // =============================================================
-    // ⭐ SOBRECARGA OPCIONAL PARA DTO (AGREGADO)
-    // =============================================================
-    // Sobrecarga opcional para DTO
-    public Producto actualizarProducto(Long id, ProductoUpdateDto request) {
-        Producto producto = productoRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + id));
-
-        // Actualiza solo campos no nulos
-        if (request.getNombre() != null) producto.setNombre(request.getNombre());
-        if (request.getPrecio() != null) producto.setPrecio(request.getPrecio());
-        if (request.getStock() != null) producto.setStock(request.getStock());
-        if (request.getEstado() != null) producto.setEstado(request.getEstadoEnum());  // Convierte automáticamente
-
-        // Nota: No actualiza categoría aquí, ya que ProductoUpdateRequest no la incluye
-        return productoRepository.save(producto);
-    }
-
-    // =============================================================
-    // ⭐ NUEVO: CAMBIAR SOLO EL ESTADO
+    // ✔ CAMBIAR SOLO ESTADO
     // =============================================================
     public void cambiarEstado(Long id, EstadoProducto nuevoEstado) {
-
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + id));
 
         producto.setEstado(nuevoEstado);
-
         productoRepository.save(producto);
     }
 
     // =============================================================
-    // ✔ ACTUALIZAR SOLO STOCK
+    // ✔ ACTUALIZAR STOCK
     // =============================================================
     public Producto actualizarStock(Long id, Integer cantidad) {
         Producto producto = productoRepository.findById(id)

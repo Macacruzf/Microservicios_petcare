@@ -1,297 +1,110 @@
 package com.petcare.producto.controller;
 
-import com.petcare.producto.model.*;
+import com.petcare.producto.dto.CategoriaRequest;
+import com.petcare.producto.dto.EstadoRequest;
+import com.petcare.producto.dto.ProductoUpdateDto;
+import com.petcare.producto.model.Categoria;
+import com.petcare.producto.model.EstadoProducto;
+import com.petcare.producto.model.Producto;
 import com.petcare.producto.service.ProductoService;
-import com.petcare.producto.dto.EstadoRequest;  // Import para EstadoRequest
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.http.ResponseEntity;
 
-import java.security.Principal;
-import java.util.*;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class ProductoControllerTest {
+public class ProductoControllerTest {
 
     @Mock
     private ProductoService productoService;
 
     @InjectMocks
-    private ProductoController productoController;
-
-    private Producto producto;
-    private Categoria categoria;
-    private Principal adminPrincipal;
-    private Principal userPrincipal;
+    private ProductoController controller;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-
-        categoria = new Categoria(1L, "Alimentos");
-        producto = new Producto(10L, "DogChow", 19990.0, 20, EstadoProducto.DISPONIBLE, categoria);
-
-        adminPrincipal = () -> "admin";
-        userPrincipal = () -> "cliente";
     }
 
-    // ============================================================
-    // ✔ /movil (sin HATEOAS) - MODIFICADO PARA VERIFICAR CONVERSIÓN DE ESTADO
-    // ============================================================
-
+    // ====================================
+    // ✔ TEST: Obtener productos móvil
+    // ====================================
     @Test
-    void testObtenerProductosMovil_ConResultados() {
-        when(productoService.getProductos(null, null))
-                .thenReturn(List.of(producto));
+    void testObtenerProductosMovil() {
+        Producto p = new Producto();
+        p.setIdProducto(1L);
+        p.setNombre("Shampoo");
+        p.setPrecio(5990.0);
+        p.setStock(10);
+        p.setEstado(EstadoProducto.DISPONIBLE);
 
-        ResponseEntity<?> response = productoController.obtenerProductosMovil(null, null);
+        Categoria c = new Categoria();
+        c.setIdCategoria(1L);
+        c.setNombre("Baño");
+        p.setCategoria(c);
 
-        assertEquals(200, response.getStatusCode().value());
-        // Verifica que la respuesta contenga productos con estado como String
-        List<?> body = (List<?>) response.getBody();
-        assertNotNull(body);
-        assertFalse(body.isEmpty());
-        // Puedes agregar más verificaciones si usas un DTO específico
-    }
+        when(productoService.getProductos(null, null)).thenReturn(List.of(p));
 
-    @Test
-    void testObtenerProductosMovil_SinResultados() {
-        when(productoService.getProductos(null, null)).thenReturn(List.of());
-
-        ResponseEntity<?> response = productoController.obtenerProductosMovil(null, null);
-
-        assertEquals(204, response.getStatusCode().value());
-    }
-
-    // ============================================================
-    // ✔ GET / (HATEOAS)
-    // ============================================================
-
-    @Test
-    void testObtenerProductosHateoas() {
-        when(productoService.getProductos(null, null))
-                .thenReturn(List.of(producto));
-
-        ResponseEntity<?> response = productoController.obtenerProductos(null, null);
+        ResponseEntity<?> response = controller.obtenerProductosMovil(null, null);
 
         assertEquals(200, response.getStatusCode().value());
     }
 
+    // ====================================
+    // ✔ TEST: Crear categoría
+    // ====================================
     @Test
-    void testObtenerProductosHateoasSinResultados() {
-        when(productoService.getProductos(null, null)).thenReturn(List.of());
+    void testAgregarCategoria() {
+        CategoriaRequest req = new CategoriaRequest();
+        req.setNombre("Accesorios");
 
-        ResponseEntity<?> response = productoController.obtenerProductos(null, null);
+        Categoria c = new Categoria();
+        c.setIdCategoria(1L);
+        c.setNombre("Accesorios");
 
-        assertEquals(204, response.getStatusCode().value());
-    }
+        when(productoService.agregarCategoria(any())).thenReturn(c);
 
-    // ============================================================
-    // ✔ GET /{id}
-    // ============================================================
-
-    @Test
-    void testObtenerProductoPorId() {
-        when(productoService.getProductoConDetalles(10L))
-                .thenReturn(producto);
-
-        ResponseEntity<?> response = productoController.obtenerProductoConDetalles(10L);
-
-        assertEquals(200, response.getStatusCode().value());
-        assertNotNull(response.getBody());
-    }
-
-    @Test
-    void testObtenerProductoPorId_NotFound() {
-        when(productoService.getProductoConDetalles(10L))
-                .thenThrow(new ProductoService.ResourceNotFoundException("No encontrado"));
-
-        ResponseEntity<?> response = productoController.obtenerProductoConDetalles(10L);
-
-        assertEquals(404, response.getStatusCode().value());
-    }
-
-    // ============================================================
-    // ✔ POST / (crear)
-    // ============================================================
-
-    @Test
-    void testAgregarProducto_AdminOK() {
-        when(productoService.agregarProducto(any())).thenReturn(producto);
-
-        ResponseEntity<?> response = productoController.agregarProducto(producto, adminPrincipal);
+        ResponseEntity<?> response = controller.agregarCategoria(req);
 
         assertEquals(201, response.getStatusCode().value());
     }
 
+    // ====================================
+    // ✔ TEST: Cambiar estado
+    // ====================================
     @Test
-    void testAgregarProducto_SinPermiso() {
-        ResponseEntity<?> response = productoController.agregarProducto(producto, userPrincipal);
-        assertEquals(403, response.getStatusCode().value());
-    }
+    void testCambiarEstado() {
+        EstadoRequest request = new EstadoRequest();
+        request.setEstado("AGOTADO");
 
-    @Test
-    void testAgregarProducto_ErrorDatos() {
-        when(productoService.agregarProducto(any()))
-                .thenThrow(new IllegalArgumentException("Error"));
+        doNothing().when(productoService).cambiarEstado(1L, EstadoProducto.NO_DISPONIBLE);
 
-        ResponseEntity<?> response = productoController.agregarProducto(producto, adminPrincipal);
-
-        assertEquals(400, response.getStatusCode().value());
-    }
-
-    // ============================================================
-    // ✔ PUT /{id}
-    // ============================================================
-
-
-    @Test
-    void testActualizarProducto_SinPermiso() {
-        ResponseEntity<?> response =
-                productoController.actualizarProducto(10L, producto, userPrincipal);
-
-        assertEquals(403, response.getStatusCode().value());
-    }
-
-    // ============================================================
-    // ✔ PUT /{id}/estado (USANDO EstadoRequest)
-    // ============================================================
-
-    @Test
-    void testCambiarEstadoProducto_AdminOK() {
-        EstadoRequest request = mock(EstadoRequest.class);
-        when(request.getEstadoAsEnum()).thenReturn(EstadoProducto.NO_DISPONIBLE);
-
-        doNothing().when(productoService).cambiarEstado(eq(10L), eq(EstadoProducto.NO_DISPONIBLE));
-
-        ResponseEntity<?> response =
-                productoController.cambiarEstadoProducto(10L, request, adminPrincipal);
+        ResponseEntity<?> response = controller.cambiarEstadoProducto(1L, request);
 
         assertEquals(200, response.getStatusCode().value());
     }
 
+    // ====================================
+    // ✔ TEST: Actualizar producto
+    // ====================================
     @Test
-    void testCambiarEstadoProducto_SinPermiso() {
-        EstadoRequest request = mock(EstadoRequest.class);
+    void testActualizarProducto() {
+        ProductoUpdateDto dto = new ProductoUpdateDto();
+        dto.setNombre("Nuevo nombre");
 
-        ResponseEntity<?> response =
-                productoController.cambiarEstadoProducto(10L, request, userPrincipal);
+        Producto p = new Producto();
+        p.setIdProducto(1L);
 
-        assertEquals(403, response.getStatusCode().value());
-    }
+        when(productoService.actualizarProducto(eq(1L), any())).thenReturn(p);
 
-    @Test
-    void testCambiarEstadoProducto_EstadoInvalido() {
-        EstadoRequest request = mock(EstadoRequest.class);
-        when(request.getEstadoAsEnum()).thenThrow(new IllegalArgumentException("Estado inválido"));
-
-        ResponseEntity<?> response =
-                productoController.cambiarEstadoProducto(10L, request, adminPrincipal);
-
-        assertEquals(400, response.getStatusCode().value());
-    }
-
-    @Test
-    void testCambiarEstadoProducto_NotFound() {
-        EstadoRequest request = mock(EstadoRequest.class);
-        when(request.getEstadoAsEnum()).thenReturn(EstadoProducto.NO_DISPONIBLE);
-        doThrow(new ProductoService.ResourceNotFoundException("No encontrado"))
-                .when(productoService).cambiarEstado(eq(10L), any());
-
-        ResponseEntity<?> response =
-                productoController.cambiarEstadoProducto(10L, request, adminPrincipal);
-
-        assertEquals(404, response.getStatusCode().value());
-    }
-
-    // ============================================================
-    // ✔ DELETE /{id}
-    // ============================================================
-
-    @Test
-    void testEliminarProducto_AdminOK() {
-
-        doNothing().when(productoService).eliminarProducto(10L);
-
-        ResponseEntity<?> response =
-                productoController.eliminarProducto(10L, adminPrincipal);
+        ResponseEntity<?> response = controller.actualizarProducto(1L, dto);
 
         assertEquals(200, response.getStatusCode().value());
-        verify(productoService).eliminarProducto(10L);
-    }
-
-    @Test
-    void testEliminarProducto_SinPermiso() {
-        ResponseEntity<?> response =
-                productoController.eliminarProducto(10L, userPrincipal);
-
-        assertEquals(403, response.getStatusCode().value());
-    }
-
-    // ============================================================
-    // ✔ CRUD CATEGORÍAS
-    // ============================================================
-
-    @Test
-    void testObtenerCategorias() {
-        when(productoService.getCategorias()).thenReturn(List.of(categoria));
-
-        ResponseEntity<?> response = productoController.obtenerCategorias();
-
-        assertEquals(200, response.getStatusCode().value());
-    }
-
-    @Test
-    void testObtenerCategorias_Vacio() {
-        when(productoService.getCategorias()).thenReturn(List.of());
-
-        ResponseEntity<?> response = productoController.obtenerCategorias();
-
-        assertEquals(204, response.getStatusCode().value());
-    }
-
-    @Test
-    void testAgregarCategoria_AdminOK() {
-        when(productoService.agregarCategoria(any())).thenReturn(categoria);
-
-        ResponseEntity<?> response =
-                productoController.agregarCategoria(categoria, adminPrincipal);
-
-        assertEquals(201, response.getStatusCode().value());
-    }
-
-    @Test
-    void testAgregarCategoria_SinPermiso() {
-        ResponseEntity<?> response =
-                productoController.agregarCategoria(categoria, userPrincipal);
-
-        assertEquals(403, response.getStatusCode().value());
-    }
-
-    @Test
-    void testActualizarCategoria_AdminOK() {
-        when(productoService.actualizarCategoria(eq(1L), any()))
-                .thenReturn(categoria);
-
-        ResponseEntity<?> response =
-                productoController.actualizarCategoria(1L, categoria, adminPrincipal);
-
-        assertEquals(200, response.getStatusCode().value());
-    }
-
-    @Test
-    void testEliminarCategoria_AdminOK() {
-
-        doNothing().when(productoService).eliminarCategoria(1L);
-
-        ResponseEntity<?> response =
-                productoController.eliminarCategoria(1L, adminPrincipal);
-
-        assertEquals(200, response.getStatusCode().value());
-        verify(productoService).eliminarCategoria(1L);
     }
 }

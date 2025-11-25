@@ -15,23 +15,23 @@ public class DataInitializer {
     public CommandLineRunner initUsuarios(UsuarioRepository repo) {
         return args -> {
 
-            if (repo.findByEmail("admin@petcare.com") == null) {
+            if (repo.findByEmail("admin@petcare.cl") == null) {
                 Usuario admin = new Usuario();
                 admin.setNombreUsuario("Admin");
-                admin.setEmail("admin@petcare.com");
+                admin.setEmail("admin@petcare.cl");
                 admin.setTelefono("12345678");
-                admin.setPassword("admin123");
+                admin.setPassword("Admin.123");
                 admin.setRol(Rol.ADMIN);
                 admin.setEstado(EstadoUsuario.ACTIVO);
                 repo.save(admin);
             }
 
-            if (repo.findByEmail("cliente@petcare.com") == null) {
+            if (repo.findByEmail("cliente@petcare.cl") == null) {
                 Usuario cliente = new Usuario();
                 cliente.setNombreUsuario("Cliente Demo");
-                cliente.setEmail("cliente@petcare.com");
+                cliente.setEmail("cliente@petcare.cl");
                 cliente.setTelefono("98765432");
-                cliente.setPassword("cliente123");
+                cliente.setPassword("Cliente.123");
                 cliente.setRol(Rol.CLIENTE);
                 cliente.setEstado(EstadoUsuario.ACTIVO);
                 repo.save(cliente);

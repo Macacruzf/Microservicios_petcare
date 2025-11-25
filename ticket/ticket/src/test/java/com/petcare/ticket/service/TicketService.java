@@ -9,7 +9,6 @@ import com.petcare.ticket.webclient.ProductoWebClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -74,7 +73,6 @@ public class TicketService {
                 .orElseThrow(() -> new RuntimeException("Ticket no encontrado"));
 
         comentario.setTicket(ticket);
-        comentario.setFecha(LocalDateTime.now());
 
         return comentarioRepo.save(comentario);
     }

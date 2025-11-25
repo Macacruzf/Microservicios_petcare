@@ -2,6 +2,8 @@ package com.petcare.ticket.model;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
@@ -22,10 +24,6 @@ public class Ticket implements Serializable {
     private Long idTicket;
 
     @Column(nullable = false)
-    @Schema(description = "Fecha y hora de creación del ticket", example = "2025-06-21T14:30:00")
-    private LocalDateTime fechaCreacion;
-
-    @Column(nullable = false)
     @Schema(description = "ID del usuario creador", example = "15")
     private Long idUsuario;
 
@@ -41,4 +39,12 @@ public class Ticket implements Serializable {
     @Schema(description = "Comentario o reseña del cliente",
             example = "Muy buena atención, volveré :)")
     private String comentario;
+
+    @OneToMany(
+            mappedBy = "ticket",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true,
+            fetch = FetchType.LAZY
+    )
+    private List<Comentario> comentarios = new ArrayList<>();
 }
