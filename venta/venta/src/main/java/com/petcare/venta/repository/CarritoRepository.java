@@ -1,11 +1,12 @@
 package com.petcare.venta.repository;
 
-import java.util.Optional;
-
+import com.petcare.venta.model.Carrito;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.petcare.venta.model.Carrito;
+import java.util.Optional;
 
 public interface CarritoRepository extends JpaRepository<Carrito, Long> {
+
+    // Buscar carrito del usuario
     Optional<Carrito> findByUsuarioId(Long usuarioId);
 }

@@ -2,35 +2,37 @@ package com.petcare.venta.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "venta")
 @Data
-@Schema(description = "Venta completa realizada por un cliente")
+@NoArgsConstructor
+@AllArgsConstructor
+@Schema(description = "Entidad que representa una venta confirmada por el usuario.")
 public class Venta {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Schema(description = "ID de la venta", example = "1")
+    @Schema(description = "ID único de la venta.", example = "50")
     private Long idVenta;
 
-    @Schema(description = "Fecha y hora en que se realizó la venta")
-    private LocalDateTime fecha;
+    @Schema(description = "ID del usuario que realizó la compra.", example = "5")
+    private Long usuarioId;
 
-    @Schema(description = "Nombre o identificador del cliente", example = "Francisca Castro")
-    private String cliente;
-
-    @Schema(description = "Monto total de la venta", example = "25990.0")
+    @Schema(description = "Total pagado en la venta.", example = "15990.0")
     private Double total;
 
-    @Schema(description = "Método de pago utilizado", example = "Tarjeta de crédito")
+    @Schema(description = "Método de pago de la venta.", example = "Tarjeta")
     private String metodoPago;
 
-    @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Schema(description = "Lista de detalles (productos) asociados a la venta")
-    private List<DetalleVenta> detalles;
+    @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL)
+    @Schema(description = "Detalles asociados a la venta.")
+    private List<DetalleVenta> detalles = new ArrayList<>();
 }
+

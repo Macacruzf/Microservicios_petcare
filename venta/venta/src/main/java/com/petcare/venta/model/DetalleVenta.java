@@ -2,33 +2,36 @@ package com.petcare.venta.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "detalle_venta")
 @Data
-@Schema(description = "Detalle individual de un producto dentro de una venta")
+@NoArgsConstructor
+@AllArgsConstructor
+@Schema(description = "Detalle de un producto dentro de una venta realizada.")
 public class DetalleVenta {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Schema(description = "ID del detalle de venta", example = "10")
-    private Long idDetalle;
+    @Schema(description = "ID del detalle de venta.", example = "100")
+    private Long idDetalleVenta;
 
     @ManyToOne
-    @JoinColumn(name = "idVenta")
-    @Schema(description = "Venta a la que pertenece este detalle")
+    @JoinColumn(name = "venta_id")
     private Venta venta;
 
-    @Schema(description = "ID del producto vendido", example = "3")
+    @Schema(description = "ID del producto vendido.", example = "7")
     private Long productoId;
 
-    @Schema(description = "Nombre del producto vendido", example = "Shampoo para perros")
-    private String nombre;
-
-    @Schema(description = "Cantidad comprada del producto", example = "2")
+    @Schema(description = "Cantidad vendida del producto.", example = "2")
     private Integer cantidad;
 
-    @Schema(description = "Subtotal del producto (precio * cantidad)", example = "9990.0")
+    @Schema(description = "Precio unitario del producto.", example = "4995.0")
+    private Double precioUnitario;
+
+    @Schema(description = "Subtotal del detalle.", example = "9990.0")
     private Double subtotal;
 }
+

@@ -1,46 +1,31 @@
 package com.petcare.venta.model;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.ArrayList;
 import java.util.List;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-
 @Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Schema(description = "Entidad que representa el carrito de compras del usuario.")
 public class Carrito {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Schema(description = "ID único del carrito.", example = "10")
+    private Long idCarrito;
 
-
+    @Schema(description = "ID del usuario dueño del carrito.", example = "5")
     private Long usuarioId;
 
+    @Schema(description = "Total acumulado del carrito.", example = "15990.0")
+    private Double total = 0.0;
+
     @OneToMany(mappedBy = "carrito", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<CarritoDetalle> detalles;
-
-    // 👉 Getters y Setters
-
-    public Long getId() {
-        return id;
-    }
-
-    public Long getUsuarioId() {
-        return usuarioId;
-    }
-
-    public void setUsuarioId(Long usuarioId) {
-        this.usuarioId = usuarioId;
-    }
-
-    public List<CarritoDetalle> getDetalles() {
-        return detalles;
-    }
-
-    public void setDetalles(List<CarritoDetalle> detalles) {
-        this.detalles = detalles;
-    }
+    @Schema(description = "Lista de productos añadidos al carrito.")
+    private List<DetalleCarrito> detalles = new ArrayList<>();
 }
