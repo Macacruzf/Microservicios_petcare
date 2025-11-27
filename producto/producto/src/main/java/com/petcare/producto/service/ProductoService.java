@@ -52,7 +52,7 @@ public class ProductoService {
     }
 
     // =============================================================
-    // ✔ OBTENER POR ID (detalle)
+    // ✔ OBTENER POR ID (detalle completo)
     // =============================================================
     public Producto getProductoConDetalles(Long id) {
         return productoRepository.findById(id)
@@ -60,7 +60,7 @@ public class ProductoService {
     }
 
     // =============================================================
-    // ✔ OBTENER SOLO POR ID (Android edición)
+    // ✔ OBTENER POR ID (Android / edición)
     // =============================================================
     public Producto getProductoById(Long id) {
         return productoRepository.findById(id)
@@ -93,13 +93,11 @@ public class ProductoService {
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + id));
 
-        // ✔ Actualizar campos simples
         if (request.getNombre() != null) producto.setNombre(request.getNombre());
         if (request.getPrecio() != null) producto.setPrecio(request.getPrecio());
         if (request.getStock() != null) producto.setStock(request.getStock());
         if (request.getEstado() != null) producto.setEstado(request.getEstadoEnum());
 
-        // ✔ Actualizar categoría si viene en el DTO
         if (request.getCategoria() != null && request.getCategoria().getIdCategoria() != null) {
 
             Categoria categoria = categoriaRepository.findById(request.getCategoria().getIdCategoria())
@@ -196,5 +194,20 @@ public class ProductoService {
         public ResourceNotFoundException(String message) {
             super(message);
         }
+    }
+
+    // =============================================================
+    // ⭐ MÉTODOS QUE FALTABAN
+    // =============================================================
+
+    /** Obtener producto simple sin detalles */
+    public Producto obtenerPorId(Long id) {
+        return productoRepository.findById(id)
+                .orElse(null);
+    }
+
+    /** Guardar producto (crear o actualizar) */
+    public Producto guardar(Producto producto) {
+        return productoRepository.save(producto);
     }
 }

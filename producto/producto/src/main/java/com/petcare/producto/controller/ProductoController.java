@@ -200,6 +200,49 @@ public class ProductoController {
             return errorResponse(500, e.getMessage());
         }
     }
+    // ============================================================
+    // ✔ DESCONTAR STOCK (ANDROID - FINALIZAR COMPRA)
+    // ============================================================
+    @PutMapping("/{id}/descontar")
+    @Operation(
+        summary = "Descontar stock",
+        description = "Descuenta una cantidad específica del stock si hay suficiente stock disponible."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Stock actualizado correctamente"),
+        @ApiResponse(responseCode = "400", description = "Stock insuficiente"),
+        @ApiResponse(responseCode = "404", description = "Producto no encontrado")
+    })
+    public ResponseEntity<?> descontarStock(
+            @PathVariable Long id,
+            @RequestBody Map<String, Integer> body
+    ) {
+        try {
+            int cantidad = body.get("cantidad");
+            Producto producto = productoService.getProductoById(id);
+
+            if (producto == null) {
+                return errorResponse(404, "Producto no encontrado");
+            }
+
+            if (producto.getStock() < cantidad) {
+                return errorResponse(400, "Stock insuficiente");
+            }
+
+            producto.setStock(producto.getStock() - cantidad);
+            productoService.guardar(producto);
+
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "Stock descontado",
+                "stockRestante", producto.getStock()
+            ));
+
+        } catch (Exception e) {
+            return errorResponse(500, "Error al descontar stock: " + e.getMessage());
+        }
+    }
+
 
     // ============================================================
     // ✔ CRUD CATEGORÍAS
