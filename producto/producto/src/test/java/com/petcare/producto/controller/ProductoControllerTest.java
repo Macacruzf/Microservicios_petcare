@@ -23,7 +23,7 @@ import com.petcare.producto.dto.CategoriaRequest;
 import com.petcare.producto.dto.EstadoRequest;
 import com.petcare.producto.dto.ProductoUpdateDto;
 import com.petcare.producto.model.Categoria;
-import com.petcare.producto.model.EstadoProducto;
+import com.petcare.producto.model.EstadoProductoEntity;
 import com.petcare.producto.model.Producto;
 import com.petcare.producto.service.ProductoService;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -163,15 +163,8 @@ class ProductoControllerTest {
     @DisplayName("PUT /{id}/estado - Cambia estado correctamente")
     void cambiarEstadoProducto_Exito() throws Exception {
         EstadoRequest request = new EstadoRequest();
-        // Asumiendo que tu EstadoRequest tiene un setter o campo compatible con JSON
-        // Para este ejemplo, simulamos el objeto request. Ajusta según tu DTO real.
-        // Si EstadoRequest usa un String o Enum directamente:
-        // request.setEstado("AGOTADO"); 
-        
-        // Mockeamos que el request devuelve el enum correcto
-        // Nota: En un test real, Jackson deserializará el JSON al objeto EstadoRequest
-        
-        doNothing().when(productoService).cambiarEstado(eq(1L), any(EstadoProducto.class));
+
+        doNothing().when(productoService).cambiarEstado(eq(1L), any(String.class));
 
         // Construimos un JSON manual simple si el DTO es complejo
         String jsonRequest = "{\"estado\": \"AGOTADO\"}"; 

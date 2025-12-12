@@ -1,6 +1,6 @@
 package com.petcare.usuario.dto;
 
-import com.petcare.usuario.model.Rol;
+import com.petcare.usuario.model.RolEntity;
 import com.petcare.usuario.model.EstadoUsuario;
 import lombok.Data;
 
@@ -8,6 +8,6 @@ import lombok.Data;
 public class ValidacionResponse {
     private boolean valido;
     private Integer idUsuario;
-    private Rol rol;
+    private RolEntity rol;
     private EstadoUsuario estado;
 }

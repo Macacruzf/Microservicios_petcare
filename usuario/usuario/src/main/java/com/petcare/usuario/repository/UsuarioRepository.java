@@ -1,7 +1,7 @@
 package com.petcare.usuario.repository;
 
 import com.petcare.usuario.model.Usuario;
-import com.petcare.usuario.model.Rol;
+import com.petcare.usuario.model.RolEntity;
 import com.petcare.usuario.model.EstadoUsuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -20,5 +20,5 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
 
     List<Usuario> findByEstado(EstadoUsuario estado);
 
-    List<Usuario> findByRol(Rol rol);
+    List<Usuario> findByRol(RolEntity rol);
 }

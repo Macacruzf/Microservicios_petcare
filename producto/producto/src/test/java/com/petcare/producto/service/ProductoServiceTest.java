@@ -1,9 +1,10 @@
 package com.petcare.producto.service;
 
 import com.petcare.producto.model.Categoria;
-import com.petcare.producto.model.EstadoProducto;
+import com.petcare.producto.model.EstadoProductoEntity;
 import com.petcare.producto.model.Producto;
 import com.petcare.producto.repository.CategoriaRepository;
+import com.petcare.producto.repository.EstadoProductoRepository;
 import com.petcare.producto.repository.ProductoRepository;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -23,11 +24,15 @@ class ProductoServiceTest {
     @Mock
     private CategoriaRepository categoriaRepository;
 
+    @Mock
+    private EstadoProductoRepository estadoProductoRepository;
+
     @InjectMocks
     private ProductoService productoService;
 
     private Categoria categoria;
     private Producto producto;
+    private EstadoProductoEntity estadoDisponible;
 
     @BeforeEach
     void setUp() {
@@ -37,12 +42,20 @@ class ProductoServiceTest {
         categoria.setIdCategoria(1L);
         categoria.setNombre("Alimentos");
 
+        estadoDisponible = new EstadoProductoEntity();
+        estadoDisponible.setIdEstado(1);
+        estadoDisponible.setNombreEstado("DISPONIBLE");
+        estadoDisponible.setDescripcion("Producto disponible para venta");
+        estadoDisponible.setVisibleCatalogo(true);
+        estadoDisponible.setPermiteVenta(true);
+        estadoDisponible.setColorHex("#4CAF50");
+
         producto = new Producto();
         producto.setIdProducto(10L);
         producto.setNombre("DogChow");
         producto.setPrecio(19990.0);
         producto.setStock(20);
-        producto.setEstado(EstadoProducto.DISPONIBLE);
+        producto.setEstado(estadoDisponible);
         producto.setCategoria(categoria);
     }
 
@@ -94,10 +107,12 @@ class ProductoServiceTest {
     // ============================================================
     @Test
     void testGetProductosPorEstado() {
-        when(productoRepository.findByEstado(EstadoProducto.DISPONIBLE))
+        when(estadoProductoRepository.findByNombreEstado("DISPONIBLE"))
+                .thenReturn(java.util.Optional.of(estadoDisponible));
+        when(productoRepository.findByEstado(estadoDisponible))
                 .thenReturn(List.of(producto));
 
-        List<Producto> result = productoService.getProductosPorEstado(EstadoProducto.DISPONIBLE);
+        List<Producto> result = productoService.getProductosPorEstado("DISPONIBLE");
 
         assertEquals(1, result.size());
     }

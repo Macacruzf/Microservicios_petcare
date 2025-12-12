@@ -1,0 +1,17 @@
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\config\DataInitializer.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\config\SecurityConfig.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\controller\UsuarioController.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\dto\ChangePasswordRequest.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\dto\LoginRequest.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\dto\LoginResponse.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\dto\RegisterRequest.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\dto\ValidacionResponse.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\model\EstadoUsuario.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\model\RolEntity.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\model\Usuario.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\repository\RolRepository.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\repository\UsuarioRepository.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\service\UsuarioService.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\UsuarioApplication.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\util\AvatarGenerator.java
+C:\Users\bruno\Videos\PetCareConnect\Microservicios_petcare\usuario\usuario\src\main\java\com\petcare\usuario\util\ImageLoader.java

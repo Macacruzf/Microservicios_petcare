@@ -1,5 +1,7 @@
 package com.petcare.producto.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.*;
@@ -30,14 +32,29 @@ public class Producto {
     @Schema(description = "Stock disponible", example = "20")
     private Integer stock;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    @Schema(description = "Estado actual del producto", example = "DISPONIBLE")
-    private EstadoProducto estado;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_estado", nullable = false)
+    @JsonIgnore  // No serializar el objeto completo
+    @Schema(description = "Estado actual del producto")
+    private EstadoProductoEntity estado;
 
-    @ManyToOne
+    // Getter personalizado para JSON - devuelve solo el nombre del estado
+    @JsonProperty("estado")
+    @Transient
+    public String getEstadoNombre() {
+        return (estado != null && estado.getNombreEstado() != null)
+            ? estado.getNombreEstado()
+            : "DISPONIBLE";
+    }
+
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_categoria", referencedColumnName = "idCategoria", nullable = false)
     @Schema(description = "Categoría asociada al producto")
     private Categoria categoria;
+
+    @Lob
+    @Column(name = "imagen", columnDefinition = "LONGBLOB")
+    @Schema(description = "Imagen del producto almacenada como byte array")
+    private byte[] imagen;
 
 }

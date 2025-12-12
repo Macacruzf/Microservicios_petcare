@@ -1,5 +1,7 @@
 package com.petcare.venta.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -30,6 +32,18 @@ public class Venta {
 
     @Schema(description = "Método de pago de la venta.", example = "Tarjeta")
     private String metodoPago;
+
+    @ManyToOne
+    @JoinColumn(name = "id_estado", nullable = false)
+    @JsonIgnore  // No serializar el objeto completo
+    @Schema(description = "Estado actual de la venta")
+    private EstadoVentaEntity estado;
+
+    // Getter personalizado para JSON - devuelve solo el nombre del estado
+    @JsonProperty("estado")
+    public String getEstadoNombre() {
+        return estado != null ? estado.getNombreEstado() : null;
+    }
 
     @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL)
     @Schema(description = "Detalles asociados a la venta.")

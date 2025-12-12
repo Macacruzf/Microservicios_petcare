@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 
 import com.petcare.producto.model.Producto;
 import com.petcare.producto.model.Categoria;
-import com.petcare.producto.model.EstadoProducto;
 import com.petcare.producto.service.ProductoService;
 
 import com.petcare.producto.dto.ProductoUpdateDto;
@@ -60,7 +59,12 @@ public class ProductoController {
                 dto.setNombre(p.getNombre());
                 dto.setPrecio(p.getPrecio());
                 dto.setStock(p.getStock());
-                dto.setEstado(p.getEstado().name());
+                // Usar el método getter que devuelve String
+                dto.setEstado(p.getEstadoNombre());
+                // Agregar URL de imagen
+                if (p.getImagen() != null && p.getImagen().length > 0) {
+                    dto.setImagenUrl("/api/v1/productos/" + p.getIdProducto() + "/imagen");
+                }
 
                 if (p.getCategoria() != null) {
                     CategoriaSimpleDto cat = new CategoriaSimpleDto();
@@ -122,6 +126,35 @@ public class ProductoController {
     }
 
     // ============================================================
+    // ✔ OBTENER IMAGEN DEL PRODUCTO
+    // ============================================================
+    @GetMapping("/{id}/imagen")
+    @Operation(summary = "Obtener imagen del producto", description = "Retorna la imagen almacenada en la BD como byte array.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Imagen encontrada"),
+        @ApiResponse(responseCode = "404", description = "Producto o imagen no encontrada")
+    })
+    public ResponseEntity<byte[]> obtenerImagenProducto(@PathVariable Long id) {
+        try {
+            Producto producto = productoService.getProductoById(id);
+            
+            if (producto.getImagen() == null || producto.getImagen().length == 0) {
+                return ResponseEntity.notFound().build();
+            }
+
+            return ResponseEntity.ok()
+                    .header("Content-Type", "image/png")
+                    .header("Content-Type", "image/jpeg")
+                    .body(producto.getImagen());
+
+        } catch (ProductoService.ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // ============================================================
     // ✔ CREAR PRODUCTO
     // ============================================================
     @PostMapping
@@ -129,9 +162,7 @@ public class ProductoController {
     @ApiResponse(responseCode = "201", description = "Producto creado", content = @Content(schema = @Schema(implementation = Producto.class)))
     public ResponseEntity<?> agregarProducto(@RequestBody Producto producto) {
         try {
-            if (producto.getEstado() == null) {
-                producto.setEstado(EstadoProducto.DISPONIBLE);
-            }
+            // El estado ya viene seteado desde el frontend o será el default (FK a id_estado=1)
             Producto nuevo = productoService.agregarProducto(producto);
             return ResponseEntity.status(201).body(nuevo);
         } catch (Exception e) {
@@ -170,8 +201,7 @@ public class ProductoController {
     ) {
 
         try {
-            EstadoProducto estado = request.getEstadoAsEnum();
-            productoService.cambiarEstado(id, estado);
+            productoService.cambiarEstado(id, request.getEstado());
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",

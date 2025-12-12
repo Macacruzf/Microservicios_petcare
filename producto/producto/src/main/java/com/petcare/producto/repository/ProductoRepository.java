@@ -5,7 +5,7 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.petcare.producto.model.EstadoProducto;
+import com.petcare.producto.model.EstadoProductoEntity;
 import com.petcare.producto.model.Producto;
 
 
@@ -27,8 +27,8 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     // Verificar si existen productos asociados a una categoría específica
     boolean existsByCategoria_IdCategoria(Long idCategoria);
 
-    // Buscar productos por estado (ej. ACTIVO, AGOTADO, etc.)
-    List<Producto> findByEstado(EstadoProducto estado);
+    // Buscar productos por estado (ej. DISPONIBLE, SIN_STOCK, etc.)
+    List<Producto> findByEstado(EstadoProductoEntity estado);
 
     
 }

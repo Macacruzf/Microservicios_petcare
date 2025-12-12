@@ -6,9 +6,10 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 
 import com.petcare.producto.model.Categoria;
-import com.petcare.producto.model.EstadoProducto;
+import com.petcare.producto.model.EstadoProductoEntity;
 import com.petcare.producto.model.Producto;
 import com.petcare.producto.repository.CategoriaRepository;
+import com.petcare.producto.repository.EstadoProductoRepository;
 import com.petcare.producto.repository.ProductoRepository;
 
 import com.petcare.producto.dto.ProductoUpdateDto;
@@ -21,11 +22,14 @@ public class ProductoService {
 
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
+    private final EstadoProductoRepository estadoProductoRepository;
 
     public ProductoService(ProductoRepository productoRepository,
-                           CategoriaRepository categoriaRepository) {
+                           CategoriaRepository categoriaRepository,
+                           EstadoProductoRepository estadoProductoRepository) {
         this.productoRepository = productoRepository;
         this.categoriaRepository = categoriaRepository;
+        this.estadoProductoRepository = estadoProductoRepository;
     }
 
     // =============================================================
@@ -47,7 +51,9 @@ public class ProductoService {
     // =============================================================
     // ✔ FILTRAR POR ESTADO
     // =============================================================
-    public List<Producto> getProductosPorEstado(EstadoProducto estado) {
+    public List<Producto> getProductosPorEstado(String nombreEstado) {
+        EstadoProductoEntity estado = estadoProductoRepository.findByNombreEstado(nombreEstado)
+                .orElseThrow(() -> new ResourceNotFoundException("Estado no encontrado: " + nombreEstado));
         return productoRepository.findByEstado(estado);
     }
 
@@ -96,7 +102,11 @@ public class ProductoService {
         if (request.getNombre() != null) producto.setNombre(request.getNombre());
         if (request.getPrecio() != null) producto.setPrecio(request.getPrecio());
         if (request.getStock() != null) producto.setStock(request.getStock());
-        if (request.getEstado() != null) producto.setEstado(request.getEstadoEnum());
+        if (request.getEstado() != null) {
+            EstadoProductoEntity nuevoEstado = estadoProductoRepository.findByNombreEstado(request.getEstado().toUpperCase())
+                .orElseThrow(() -> new ResourceNotFoundException("Estado no encontrado: " + request.getEstado()));
+            producto.setEstado(nuevoEstado);
+        }
 
         if (request.getCategoria() != null && request.getCategoria().getIdCategoria() != null) {
 
@@ -114,9 +124,12 @@ public class ProductoService {
     // =============================================================
     // ✔ CAMBIAR SOLO ESTADO
     // =============================================================
-    public void cambiarEstado(Long id, EstadoProducto nuevoEstado) {
+    public void cambiarEstado(Long id, String nombreEstado) {
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + id));
+
+        EstadoProductoEntity nuevoEstado = estadoProductoRepository.findByNombreEstado(nombreEstado.toUpperCase())
+                .orElseThrow(() -> new ResourceNotFoundException("Estado no encontrado: " + nombreEstado));
 
         producto.setEstado(nuevoEstado);
         productoRepository.save(producto);

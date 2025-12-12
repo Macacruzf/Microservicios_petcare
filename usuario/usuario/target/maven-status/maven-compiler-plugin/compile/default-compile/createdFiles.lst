@@ -1,0 +1,17 @@
+com\petcare\usuario\config\DataInitializer.class
+com\petcare\usuario\model\Usuario.class
+com\petcare\usuario\dto\LoginResponse.class
+com\petcare\usuario\repository\RolRepository.class
+com\petcare\usuario\dto\LoginRequest.class
+com\petcare\usuario\UsuarioApplication.class
+com\petcare\usuario\util\AvatarGenerator.class
+com\petcare\usuario\model\RolEntity.class
+com\petcare\usuario\dto\RegisterRequest.class
+com\petcare\usuario\util\ImageLoader.class
+com\petcare\usuario\model\EstadoUsuario.class
+com\petcare\usuario\controller\UsuarioController.class
+com\petcare\usuario\repository\UsuarioRepository.class
+com\petcare\usuario\service\UsuarioService.class
+com\petcare\usuario\config\SecurityConfig.class
+com\petcare\usuario\dto\ChangePasswordRequest.class
+com\petcare\usuario\dto\ValidacionResponse.class

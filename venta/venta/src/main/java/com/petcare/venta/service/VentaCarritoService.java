@@ -3,10 +3,12 @@ package com.petcare.venta.service;
 import com.petcare.venta.model.Carrito;
 import com.petcare.venta.model.DetalleCarrito;
 import com.petcare.venta.model.DetalleVenta;
+import com.petcare.venta.model.EstadoVentaEntity;
 import com.petcare.venta.model.Venta;
 import com.petcare.venta.repository.CarritoRepository;
 import com.petcare.venta.repository.DetalleCarritoRepository;
 import com.petcare.venta.repository.DetalleVentaRepository;
+import com.petcare.venta.repository.EstadoVentaRepository;
 import com.petcare.venta.repository.VentaRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ public class VentaCarritoService {
     private final DetalleVentaRepository detVentaRepo;
     private final CarritoRepository carritoRepo;
     private final DetalleCarritoRepository detCarritoRepo;
+    private final EstadoVentaRepository estadoVentaRepo;
 
 
     // ===============================================================
@@ -94,10 +97,15 @@ public class VentaCarritoService {
             throw new RuntimeException("El carrito está vacío.");
         }
 
+        // Obtener estado CONFIRMADA
+        EstadoVentaEntity estadoConfirmada = estadoVentaRepo.findByNombreEstado("CONFIRMADA")
+            .orElseThrow(() -> new RuntimeException("Estado CONFIRMADA no encontrado en BD"));
+
         // Crear venta
         Venta venta = new Venta();
         venta.setUsuarioId(usuarioId);
         venta.setMetodoPago(metodoPago);
+        venta.setEstado(estadoConfirmada);  // ← Asignar estado
 
         // ⚡ TOTAL QUE VIENE DESDE ANDROID
         venta.setTotal(totalCalculado);

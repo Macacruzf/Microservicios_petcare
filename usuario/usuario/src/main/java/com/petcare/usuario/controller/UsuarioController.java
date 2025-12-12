@@ -5,8 +5,9 @@ import com.petcare.usuario.dto.LoginResponse;
 import com.petcare.usuario.dto.RegisterRequest;
 import com.petcare.usuario.dto.ValidacionResponse;
 import com.petcare.usuario.model.Usuario;
+import com.petcare.usuario.model.RolEntity;
 import com.petcare.usuario.repository.UsuarioRepository;
-import com.petcare.usuario.model.Rol;
+import com.petcare.usuario.repository.RolRepository;
 import com.petcare.usuario.model.EstadoUsuario;
 import com.petcare.usuario.service.UsuarioService;
 
@@ -19,22 +20,28 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
+import java.io.IOException;
 
 @RestController
-@RequestMapping("/usuario")
+@RequestMapping("/api/usuarios")
 @CrossOrigin("*")
 @Tag(name = "Usuarios", description = "Controlador para gestión de usuarios, autenticación y perfiles")
 public class UsuarioController {
 
     private final UsuarioRepository usuarioRepository;
     private final UsuarioService service;
+    private final RolRepository rolRepository;
 
-    public UsuarioController(UsuarioService service, UsuarioRepository usuarioRepository) {
+    public UsuarioController(UsuarioService service, UsuarioRepository usuarioRepository, RolRepository rolRepository) {
         this.service = service;
         this.usuarioRepository = usuarioRepository;
+        this.rolRepository = rolRepository;
     }
 
     // -----------------------------------------------------------
@@ -49,9 +56,12 @@ public class UsuarioController {
     })
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
 
+        System.out.println("📥 LOGIN REQUEST - Email: " + req.getEmail());
+
         Usuario u = service.login(req.getEmail(), req.getPassword());
 
         if (u == null) {
+            System.out.println("❌ LOGIN FAILED - Credenciales inválidas");
             return ResponseEntity.status(401).body(
                 Map.of("success", false, "message", "Credenciales inválidas")
             );
@@ -60,6 +70,14 @@ public class UsuarioController {
         LoginResponse resp = new LoginResponse();
         resp.setSuccess(true);
         resp.setUsuario(u);
+
+        System.out.println("✅ LOGIN SUCCESS");
+        System.out.println("📤 Enviando respuesta:");
+        System.out.println("   - Usuario ID: " + u.getIdUsuario());
+        System.out.println("   - Nombre: " + u.getNombreUsuario());
+        System.out.println("   - Email: " + u.getEmail());
+        System.out.println("   - Rol: " + u.getRolNombre());
+        System.out.println("   - Estado: " + u.getEstado());
 
         return ResponseEntity.ok(resp);
     }
@@ -82,12 +100,13 @@ public class UsuarioController {
         nuevo.setTelefono(req.getTelefono());
         nuevo.setPassword(req.getPassword());
         
-        try {
-            nuevo.setRol(Rol.valueOf(req.getRol()));
-        } catch (IllegalArgumentException | NullPointerException e) {
-            // Si el rol es inválido o nulo, asignamos CLIENTE por seguridad
-            nuevo.setRol(Rol.CLIENTE);
-        }
+        // Obtener rol desde BD (por defecto CLIENTE)
+        String nombreRol = (req.getRol() != null && !req.getRol().isEmpty()) ? req.getRol().toUpperCase() : "CLIENTE";
+        RolEntity rol = rolRepository.findByNombreRol(nombreRol)
+            .orElseGet(() -> rolRepository.findByNombreRol("CLIENTE")
+                .orElseThrow(() -> new RuntimeException("Rol CLIENTE no encontrado en BD")));
+
+        nuevo.setRol(rol);
 
         return ResponseEntity.ok(service.registrar(nuevo));
     }
@@ -130,6 +149,41 @@ public class UsuarioController {
     }
 
     // -----------------------------------------------------------
+    // CAMBIAR CONTRASEÑA
+    // -----------------------------------------------------------
+    @PostMapping("/cambiar-password/{id}")
+    @Operation(summary = "Cambiar contraseña", description = "Permite cambiar la contraseña validando la contraseña actual")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Contraseña cambiada exitosamente"),
+        @ApiResponse(responseCode = "400", description = "Contraseña actual incorrecta o contraseñas nuevas no coinciden"),
+        @ApiResponse(responseCode = "404", description = "Usuario no encontrado")
+    })
+    public ResponseEntity<?> changePassword(
+            @Parameter(description = "ID del usuario") @PathVariable Integer id,
+            @RequestBody com.petcare.usuario.dto.ChangePasswordRequest request) {
+
+        // Validar que las contraseñas nuevas coincidan
+        if (!request.getNewPassword().equals(request.getConfirmNewPassword())) {
+            return ResponseEntity.status(400).body(
+                Map.of("success", false, "message", "Las contraseñas nuevas no coinciden")
+            );
+        }
+
+        // Intentar cambiar la contraseña
+        boolean success = service.changePassword(id, request.getCurrentPassword(), request.getNewPassword());
+
+        if (!success) {
+            return ResponseEntity.status(400).body(
+                Map.of("success", false, "message", "Contraseña actual incorrecta")
+            );
+        }
+
+        return ResponseEntity.ok(
+            Map.of("success", true, "message", "Contraseña cambiada exitosamente")
+        );
+    }
+
+    // -----------------------------------------------------------
     // LISTAR USUARIOS (solo admin)
     // -----------------------------------------------------------
     @GetMapping("/listar/{idAdmin}")
@@ -144,7 +198,7 @@ public class UsuarioController {
 
         Usuario admin = service.getPerfil(idAdmin);
 
-        if (admin == null || admin.getRol() != Rol.ADMIN) {
+        if (admin == null || !"ADMIN".equals(admin.getRol().getNombreRol())) {
             return ResponseEntity.status(403).body("No autorizado");
         }
 
@@ -213,7 +267,7 @@ public class UsuarioController {
         if (u == null)
             return ResponseEntity.status(404).body("No encontrado");
 
-        return ResponseEntity.ok(Map.of("rol", u.getRol().name()));
+        return ResponseEntity.ok(Map.of("rol", u.getRol().getNombreRol()));
     }
 
     // -----------------------------------------------------------
@@ -243,4 +297,104 @@ public class UsuarioController {
         usuarioRepository.deleteById(id);
         return ResponseEntity.ok("Usuario eliminado");
     }
+
+    // -----------------------------------------------------------
+    // SUBIR FOTO DE PERFIL
+    // -----------------------------------------------------------
+    @PostMapping(value = "/{id}/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Subir foto de perfil", description = "Sube una imagen de perfil para el usuario especificado")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Foto subida exitosamente"),
+        @ApiResponse(responseCode = "404", description = "Usuario no encontrado"),
+        @ApiResponse(responseCode = "400", description = "Error al procesar la imagen")
+    })
+    public ResponseEntity<?> subirFotoPerfil(
+            @Parameter(description = "ID del usuario") @PathVariable Integer id,
+            @Parameter(description = "Archivo de imagen") @RequestParam("foto") MultipartFile foto) {
+
+        try {
+            Usuario usuario = usuarioRepository.findById(id)
+                .orElse(null);
+
+            if (usuario == null) {
+                return ResponseEntity.status(404).body(
+                    Map.of("success", false, "message", "Usuario no encontrado")
+                );
+            }
+
+            // Validar que sea una imagen
+            String contentType = foto.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.status(400).body(
+                    Map.of("success", false, "message", "El archivo debe ser una imagen")
+                );
+            }
+
+            // Guardar la foto
+            usuario.setFotoPerfil(foto.getBytes());
+            usuarioRepository.save(usuario);
+
+            return ResponseEntity.ok(
+                Map.of("success", true, "message", "Foto de perfil actualizada correctamente")
+            );
+
+        } catch (IOException e) {
+            return ResponseEntity.status(400).body(
+                Map.of("success", false, "message", "Error al procesar la imagen: " + e.getMessage())
+            );
+        }
+    }
+
+    // -----------------------------------------------------------
+    // OBTENER FOTO DE PERFIL
+    // -----------------------------------------------------------
+    @GetMapping("/{id}/foto")
+    @Operation(summary = "Obtener foto de perfil", description = "Descarga la foto de perfil del usuario")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Foto encontrada"),
+        @ApiResponse(responseCode = "404", description = "Usuario o foto no encontrada")
+    })
+    public ResponseEntity<byte[]> obtenerFotoPerfil(@Parameter(description = "ID del usuario") @PathVariable Integer id) {
+
+        Usuario usuario = usuarioRepository.findById(id)
+            .orElse(null);
+
+        if (usuario == null || usuario.getFotoPerfil() == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.IMAGE_JPEG);
+        headers.setContentLength(usuario.getFotoPerfil().length);
+
+        return ResponseEntity.ok()
+            .headers(headers)
+            .body(usuario.getFotoPerfil());
+    }
+
+    // -----------------------------------------------------------
+    // ELIMINAR FOTO DE PERFIL
+    // -----------------------------------------------------------
+    @DeleteMapping("/{id}/foto")
+    @Operation(summary = "Eliminar foto de perfil", description = "Elimina la foto de perfil del usuario")
+    @ApiResponse(responseCode = "200", description = "Foto eliminada correctamente")
+    public ResponseEntity<?> eliminarFotoPerfil(@Parameter(description = "ID del usuario") @PathVariable Integer id) {
+
+        Usuario usuario = usuarioRepository.findById(id)
+            .orElse(null);
+
+        if (usuario == null) {
+            return ResponseEntity.status(404).body(
+                Map.of("success", false, "message", "Usuario no encontrado")
+            );
+        }
+
+        usuario.setFotoPerfil(null);
+        usuarioRepository.save(usuario);
+
+        return ResponseEntity.ok(
+            Map.of("success", true, "message", "Foto de perfil eliminada")
+        );
+    }
 }
+
