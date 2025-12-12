@@ -77,7 +77,7 @@ public class Producto {
     // CATEGORÍA DEL PRODUCTO
     // ============================================================
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_categoria", referencedColumnName = "idCategoria", nullable = false)
+    @JoinColumn(name = "id_categoria", nullable = false)
     @Schema(
         description = "Categoría asociada al producto",
         requiredMode = Schema.RequiredMode.REQUIRED
