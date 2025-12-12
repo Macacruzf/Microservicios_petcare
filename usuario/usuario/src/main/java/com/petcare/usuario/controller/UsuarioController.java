@@ -88,7 +88,7 @@ public class UsuarioController {
     @PostMapping("/register")
     @Operation(summary = "Registrar un nuevo usuario", description = "Crea una nueva cuenta de usuario en el sistema. El rol por defecto será CLIENTE si no se especifica o es inválido.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Usuario registrado exitosamente", 
+        @ApiResponse(responseCode = "201", description = "Usuario registrado exitosamente", 
                      content = @Content(schema = @Schema(implementation = Usuario.class))),
         @ApiResponse(responseCode = "400", description = "Datos de registro inválidos")
     })

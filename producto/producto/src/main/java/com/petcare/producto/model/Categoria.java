@@ -1,12 +1,7 @@
 package com.petcare.producto.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,17 +11,24 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Schema(description = "Tipos de categorías")
+@Schema(description = "Representa una categoría de productos dentro del sistema PetCare")
 public class Categoria {
 
-    // ID único
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Schema(description = "ID único de la categoría", example = "1")
+    @Column(name = "id_categoria")
+    @Schema(
+        description = "ID único de la categoría",
+        example = "1",
+        accessMode = Schema.AccessMode.READ_ONLY
+    )
     private Long idCategoria;
 
-    // Nombre
     @Column(nullable = false)
-    @Schema(description = "Nombre de la categoría", example = "Pelota de goma", required = true)
+    @Schema(
+        description = "Nombre de la categoría",
+        example = "Juguetes",
+        requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String nombre;
 }

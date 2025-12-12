@@ -7,31 +7,55 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
+@Table(name = "detalle_venta")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Detalle de un producto dentro de una venta realizada.")
+@Schema(description = "Detalle individual de un producto dentro de una venta realizada.")
 public class DetalleVenta {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Schema(description = "ID del detalle de venta.", example = "100")
+    @Column(name = "id_detalle_venta")
+    @Schema(
+        description = "ID único del detalle de venta.",
+        example = "100",
+        accessMode = Schema.AccessMode.READ_ONLY
+    )
     private Long idDetalleVenta;
 
-    @ManyToOne
-    @JoinColumn(name = "venta_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "venta_id", nullable = false)
+    @Schema(description = "Venta a la cual pertenece este detalle.")
     private Venta venta;
 
-    @Schema(description = "ID del producto vendido.", example = "7")
+    @Column(name = "producto_id", nullable = false)
+    @Schema(
+        description = "ID del producto vendido.",
+        example = "7",
+        requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private Long productoId;
 
-    @Schema(description = "Cantidad vendida del producto.", example = "2")
+    @Column(nullable = false)
+    @Schema(
+        description = "Cantidad del producto vendida.",
+        example = "2",
+        minimum = "1"
+    )
     private Integer cantidad;
 
-    @Schema(description = "Precio unitario del producto.", example = "4995.0")
+    @Column(name = "precio_unitario", nullable = false)
+    @Schema(
+        description = "Precio unitario del producto al momento de la venta.",
+        example = "4995.0"
+    )
     private Double precioUnitario;
 
-    @Schema(description = "Subtotal del detalle.", example = "9990.0")
+    @Column(nullable = false)
+    @Schema(
+        description = "Subtotal calculado (precioUnitario × cantidad).",
+        example = "9990.0"
+    )
     private Double subtotal;
 }
-

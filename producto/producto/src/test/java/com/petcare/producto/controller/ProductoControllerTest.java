@@ -1,225 +1,314 @@
 package com.petcare.producto.controller;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.petcare.producto.dto.CategoriaRequest;
 import com.petcare.producto.dto.EstadoRequest;
 import com.petcare.producto.dto.ProductoUpdateDto;
 import com.petcare.producto.model.Categoria;
-import com.petcare.producto.model.EstadoProductoEntity;
 import com.petcare.producto.model.Producto;
 import com.petcare.producto.service.ProductoService;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 
-@WebMvcTest(ProductoController.class)
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.*;
+import org.springframework.http.ResponseEntity;
+
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 class ProductoControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @InjectMocks
+    private ProductoController productoController;
 
-    @MockBean
+    @Mock
     private ProductoService productoService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private Producto productoEjemplo;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+
+        productoEjemplo = new Producto();
+        productoEjemplo.setIdProducto(1L);
+        productoEjemplo.setNombre("Dog Chow Adulto");
+        productoEjemplo.setPrecio(23990.0);
+        productoEjemplo.setStock(10);
+    }
 
     // ============================================================
-    // TEST: OBTENER PRODUCTOS MÓVIL
+    // ✔ TEST LISTAR PRODUCTOS GENERAL
     // ============================================================
     @Test
-    @DisplayName("GET /movil - Retorna lista de DTOs cuando hay productos")
-    void obtenerProductosMovil_Exito() throws Exception {
-        // Arrange
-        Categoria cat = new Categoria();
-        cat.setIdCategoria(1L);
-        cat.setNombre("Alimentos");
+    void obtenerProductos_OK() {
+        when(productoService.getProductos(null, null))
+                .thenReturn(List.of(productoEjemplo));
 
-        Producto p1 = new Producto();
-        p1.setIdProducto(1L);
-        p1.setNombre("Dog Chow");
-        p1.setPrecio(50.0);
-        p1.setStock(10);
-        p1.setEstado(EstadoProducto.DISPONIBLE);
-        p1.setCategoria(cat);
+        ResponseEntity<?> respuesta = productoController.obtenerProductos(null, null);
 
-        when(productoService.getProductos(null, null)).thenReturn(Arrays.asList(p1));
-
-        // Act & Assert
-        mockMvc.perform(get("/api/v1/productos/movil")
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].idProducto").value(1L))
-                .andExpect(jsonPath("$[0].nombre").value("Dog Chow"))
-                .andExpect(jsonPath("$[0].categoria.nombre").value("Alimentos"));
+        assertEquals(200, respuesta.getStatusCodeValue());
+        assertTrue(respuesta.getBody() instanceof List);
+        verify(productoService).getProductos(null, null);
     }
 
     @Test
-    @DisplayName("GET /movil - Retorna 204 No Content si la lista está vacía")
-    void obtenerProductosMovil_Vacio() throws Exception {
+    void obtenerProductos_NoContent() {
         when(productoService.getProductos(null, null)).thenReturn(Collections.emptyList());
 
-        mockMvc.perform(get("/api/v1/productos/movil"))
-                .andExpect(status().isNoContent());
+        ResponseEntity<?> respuesta = productoController.obtenerProductos(null, null);
+
+        assertEquals(204, respuesta.getStatusCodeValue());
+        verify(productoService).getProductos(null, null);
     }
 
     // ============================================================
-    // TEST: OBTENER PRODUCTO POR ID
+    // ✔ TEST OBTENER PRODUCTO POR ID
     // ============================================================
     @Test
-    @DisplayName("GET /{id} - Retorna producto si existe")
-    void obtenerProductoPorId_Exito() throws Exception {
-        Producto p = new Producto();
-        p.setIdProducto(1L);
-        p.setNombre("Hueso de Goma");
+    void obtenerProductoConDetalles_OK() {
+        when(productoService.getProductoById(1L)).thenReturn(productoEjemplo);
 
-        when(productoService.getProductoById(1L)).thenReturn(p);
+        ResponseEntity<?> respuesta = productoController.obtenerProductoConDetalles(1L);
 
-        mockMvc.perform(get("/api/v1/productos/{id}", 1L))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nombre").value("Hueso de Goma"));
+        assertEquals(200, respuesta.getStatusCodeValue());
+        assertEquals(productoEjemplo, respuesta.getBody());
+        verify(productoService).getProductoById(1L);
     }
 
     @Test
-    @DisplayName("GET /{id} - Retorna 404 si no existe")
-    void obtenerProductoPorId_NoEncontrado() throws Exception {
-        // Simulamos la excepción personalizada. Asegúrate de que esta clase exista y sea accesible.
-        when(productoService.getProductoById(99L))
-                .thenThrow(new ProductoService.ResourceNotFoundException("Producto no encontrado"));
+    void obtenerProductoConDetalles_NotFound() {
+        when(productoService.getProductoById(1L))
+                .thenThrow(new ProductoService.ResourceNotFoundException("No encontrado"));
 
-        mockMvc.perform(get("/api/v1/productos/{id}", 99L))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("Producto no encontrado"));
+        ResponseEntity<?> respuesta = productoController.obtenerProductoConDetalles(1L);
+
+        assertEquals(404, respuesta.getStatusCodeValue());
+        verify(productoService).getProductoById(1L);
     }
 
     // ============================================================
-    // TEST: CREAR PRODUCTO
+    // ✔ TEST CREAR PRODUCTO
     // ============================================================
     @Test
-    @DisplayName("POST / - Crea producto y retorna 201 Created")
-    void agregarProducto_Exito() throws Exception {
-        Producto input = new Producto();
-        input.setNombre("Juguete Nuevo");
-        
-        Producto output = new Producto();
-        output.setIdProducto(5L);
-        output.setNombre("Juguete Nuevo");
-        output.setEstado(EstadoProducto.DISPONIBLE);
+    void agregarProducto_Created() {
+        when(productoService.agregarProducto(any())).thenReturn(productoEjemplo);
 
-        when(productoService.agregarProducto(any(Producto.class))).thenReturn(output);
+        ResponseEntity<?> respuesta = productoController.agregarProducto(productoEjemplo);
 
-        mockMvc.perform(post("/api/v1/productos")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(input)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.idProducto").value(5L))
-                .andExpect(jsonPath("$.estado").value("DISPONIBLE"));
+        assertEquals(201, respuesta.getStatusCodeValue());
+        verify(productoService).agregarProducto(any());
     }
 
     // ============================================================
-    // TEST: ACTUALIZAR PRODUCTO
+    // ✔ TEST ACTUALIZAR PRODUCTO
     // ============================================================
     @Test
-    @DisplayName("PUT /{id} - Actualiza producto correctamente")
-    void actualizarProducto_Exito() throws Exception {
+    void actualizarProducto_OK() {
         ProductoUpdateDto dto = new ProductoUpdateDto();
-        dto.setNombre("Nombre Actualizado");
+        dto.setNombre("Nuevo nombre");
 
-        Producto actualizado = new Producto();
-        actualizado.setIdProducto(1L);
-        actualizado.setNombre("Nombre Actualizado");
+        when(productoService.actualizarProducto(eq(1L), any()))
+                .thenReturn(productoEjemplo);
 
-        when(productoService.actualizarProducto(eq(1L), any(ProductoUpdateDto.class)))
-                .thenReturn(actualizado);
+        ResponseEntity<?> respuesta = productoController.actualizarProducto(1L, dto);
 
-        mockMvc.perform(put("/api/v1/productos/{id}", 1L)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nombre").value("Nombre Actualizado"));
+        assertEquals(200, respuesta.getStatusCodeValue());
+        verify(productoService).actualizarProducto(eq(1L), any());
+    }
+
+    @Test
+    void actualizarProducto_NotFound() {
+        ProductoUpdateDto dto = new ProductoUpdateDto();
+
+        when(productoService.actualizarProducto(eq(1L), any()))
+                .thenThrow(new ProductoService.ResourceNotFoundException("No encontrado"));
+
+        ResponseEntity<?> respuesta = productoController.actualizarProducto(1L, dto);
+
+        assertEquals(404, respuesta.getStatusCodeValue());
+        verify(productoService).actualizarProducto(eq(1L), any());
     }
 
     // ============================================================
-    // TEST: CAMBIAR ESTADO
+    // ✔ TEST CAMBIAR ESTADO
     // ============================================================
     @Test
-    @DisplayName("PUT /{id}/estado - Cambia estado correctamente")
-    void cambiarEstadoProducto_Exito() throws Exception {
-        EstadoRequest request = new EstadoRequest();
+    void cambiarEstadoProducto_OK() {
+        EstadoRequest req = new EstadoRequest();
+        req.setEstado("DISPONIBLE");
 
-        doNothing().when(productoService).cambiarEstado(eq(1L), any(String.class));
+        ResponseEntity<?> respuesta = productoController.cambiarEstadoProducto(1L, req);
 
-        // Construimos un JSON manual simple si el DTO es complejo
-        String jsonRequest = "{\"estado\": \"AGOTADO\"}"; 
+        assertEquals(200, respuesta.getStatusCodeValue());
+        verify(productoService).cambiarEstado(1L, "DISPONIBLE");
+    }
 
-        mockMvc.perform(put("/api/v1/productos/{id}/estado", 1L)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonRequest))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("success"));
+    @Test
+    void cambiarEstadoProducto_NotFound() {
+        EstadoRequest req = new EstadoRequest();
+        req.setEstado("SIN_STOCK");
+
+        doThrow(new ProductoService.ResourceNotFoundException("No encontrado"))
+                .when(productoService).cambiarEstado(1L, "SIN_STOCK");
+
+        ResponseEntity<?> respuesta = productoController.cambiarEstadoProducto(1L, req);
+
+        assertEquals(404, respuesta.getStatusCodeValue());
     }
 
     // ============================================================
-    // TEST: ELIMINAR PRODUCTO
+    // ✔ TEST ELIMINAR
     // ============================================================
     @Test
-    @DisplayName("DELETE /{id} - Elimina producto y retorna 200")
-    void eliminarProducto_Exito() throws Exception {
-        doNothing().when(productoService).eliminarProducto(1L);
+    void eliminarProducto_OK() {
+        ResponseEntity<?> respuesta = productoController.eliminarProducto(1L);
 
-        mockMvc.perform(delete("/api/v1/productos/{id}", 1L))
-                .andExpect(status().isOk());
+        assertEquals(200, respuesta.getStatusCodeValue());
+        verify(productoService).eliminarProducto(1L);
+    }
+
+    @Test
+    void eliminarProducto_NotFound() {
+        doThrow(new ProductoService.ResourceNotFoundException("No encontrado"))
+                .when(productoService).eliminarProducto(1L);
+
+        ResponseEntity<?> respuesta = productoController.eliminarProducto(1L);
+
+        assertEquals(404, respuesta.getStatusCodeValue());
     }
 
     // ============================================================
-    // TEST: CATEGORÍAS
+    // ✔ TEST DESCONTAR STOCK
     // ============================================================
     @Test
-    @DisplayName("GET /categorias - Retorna lista de categorías")
-    void obtenerCategorias_Exito() throws Exception {
-        Categoria c1 = new Categoria();
-        c1.setNombre("Juguetes");
-        
-        when(productoService.getCategorias()).thenReturn(List.of(c1));
+    void descontarStock_OK() {
+        Map<String, Integer> body = Map.of("cantidad", 5);
 
-        mockMvc.perform(get("/api/v1/productos/categorias"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].nombre").value("Juguetes"));
+        when(productoService.getProductoById(1L)).thenReturn(productoEjemplo);
+
+        ResponseEntity<?> respuesta = productoController.descontarStock(1L, body);
+
+        assertEquals(200, respuesta.getStatusCodeValue());
+        assertEquals(5, productoEjemplo.getStock());
+        verify(productoService).guardar(any());
     }
-    
-    @Test
-    @DisplayName("POST /categorias - Crea nueva categoría")
-    void agregarCategoria_Exito() throws Exception {
-        CategoriaRequest request = new CategoriaRequest();
-        request.setNombre("Nueva Cat");
-        
-        Categoria created = new Categoria();
-        created.setIdCategoria(10L);
-        created.setNombre("Nueva Cat");
-        
-        when(productoService.agregarCategoria(any(Categoria.class))).thenReturn(created);
 
-        mockMvc.perform(post("/api/v1/productos/categorias")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.idCategoria").value(10L));
+    @Test
+    void descontarStock_NotFound() {
+        Map<String, Integer> body = Map.of("cantidad", 5);
+
+        when(productoService.getProductoById(1L))
+                .thenThrow(new ProductoService.ResourceNotFoundException("No encontrado"));
+
+        ResponseEntity<?> respuesta = productoController.descontarStock(1L, body);
+
+        assertEquals(404, respuesta.getStatusCodeValue());
+    }
+
+    @Test
+    void descontarStock_StockInsuficiente() {
+        Map<String, Integer> body = Map.of("cantidad", 20);
+        productoEjemplo.setStock(5);
+
+        when(productoService.getProductoById(1L)).thenReturn(productoEjemplo);
+
+        ResponseEntity<?> respuesta = productoController.descontarStock(1L, body);
+
+        assertEquals(400, respuesta.getStatusCodeValue());
+    }
+
+    // ============================================================
+    // ✔ TEST LISTAR CATEGORÍAS
+    // ============================================================
+    @Test
+    void obtenerCategorias_OK() {
+        Categoria cat = new Categoria(1L, "Alimentos");
+        when(productoService.getCategorias()).thenReturn(List.of(cat));
+
+        ResponseEntity<?> respuesta = productoController.obtenerCategorias();
+
+        assertEquals(200, respuesta.getStatusCodeValue());
+        verify(productoService).getCategorias();
+    }
+
+    @Test
+    void obtenerCategorias_NoContent() {
+        when(productoService.getCategorias()).thenReturn(List.of());
+
+        ResponseEntity<?> respuesta = productoController.obtenerCategorias();
+
+        assertEquals(204, respuesta.getStatusCodeValue());
+    }
+
+    // ============================================================
+    // ✔ TEST CREAR CATEGORÍA
+    // ============================================================
+    @Test
+    void agregarCategoria_Created() {
+        CategoriaRequest req = new CategoriaRequest();
+        req.setNombre("Juguetes");
+
+        Categoria creada = new Categoria(1L, "Juguetes");
+
+        when(productoService.agregarCategoria(any())).thenReturn(creada);
+
+        ResponseEntity<?> respuesta = productoController.agregarCategoria(req);
+
+        assertEquals(201, respuesta.getStatusCodeValue());
+        verify(productoService).agregarCategoria(any());
+    }
+
+    // ============================================================
+    // ✔ TEST ACTUALIZAR CATEGORÍA
+    // ============================================================
+    @Test
+    void actualizarCategoria_OK() {
+        CategoriaRequest req = new CategoriaRequest();
+        req.setNombre("Accesorios");
+
+        Categoria categoriaActualizada = new Categoria(1L, "Accesorios");
+
+        when(productoService.actualizarCategoria(eq(1L), any())).thenReturn(categoriaActualizada);
+
+        ResponseEntity<?> respuesta = productoController.actualizarCategoria(1L, req);
+
+        assertEquals(200, respuesta.getStatusCodeValue());
+        verify(productoService).actualizarCategoria(eq(1L), any());
+    }
+
+    @Test
+    void actualizarCategoria_NotFound() {
+        CategoriaRequest req = new CategoriaRequest();
+        req.setNombre("Accesorios");
+
+        when(productoService.actualizarCategoria(eq(1L), any()))
+                .thenThrow(new ProductoService.ResourceNotFoundException("No encontrado"));
+
+        ResponseEntity<?> respuesta = productoController.actualizarCategoria(1L, req);
+
+        assertEquals(404, respuesta.getStatusCodeValue());
+    }
+
+    // ============================================================
+    // ✔ TEST ELIMINAR CATEGORÍA
+    // ============================================================
+    @Test
+    void eliminarCategoria_OK() {
+        ResponseEntity<?> respuesta = productoController.eliminarCategoria(1L);
+
+        assertEquals(200, respuesta.getStatusCodeValue());
+        verify(productoService).eliminarCategoria(1L);
+    }
+
+    @Test
+    void eliminarCategoria_NotFound() {
+        doThrow(new ProductoService.ResourceNotFoundException("No encontrada"))
+                .when(productoService).eliminarCategoria(1L);
+
+        ResponseEntity<?> respuesta = productoController.eliminarCategoria(1L);
+
+        assertEquals(404, respuesta.getStatusCodeValue());
     }
 }
